@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Idea } from "@/types/idea";
 import DeleteIdeaButton from "./DeleteIdeaButton";
+import EditIdeaButton from "./EditIdeaButton";
 
 type Props = {
   ideas: Idea[];
@@ -160,10 +161,14 @@ export default function IdeaBank({ ideas }: Props) {
               </td>
 
               <td className="p-4">
-                <DeleteIdeaButton
-                  ideaId={idea.id}
-                  title={idea.title}
-                />
+                <div className="flex items-center gap-4">
+                  <EditIdeaButton idea={idea} />
+
+                  <DeleteIdeaButton
+                    ideaId={idea.id}
+                    title={idea.title}
+                  />
+                </div>
               </td>
             </tr>
           ))}
