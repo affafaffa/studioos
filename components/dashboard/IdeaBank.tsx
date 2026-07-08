@@ -26,13 +26,28 @@ const statusStyles: Record<string, string> = {
   Rejected: "bg-red-50 text-red-700 border-red-100",
 };
 
+function formatNumber(value: number | null) {
+  return Number(value || 0).toLocaleString("en-US");
+}
+
+function formatPercent(value: number | null) {
+  return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function formatMoney(value: number | null) {
+  return `$${Number(value || 0).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  })}`;
+}
+
 function formatDate(value: string | null) {
   if (!value) return "-";
 
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "2-digit",
     year: "numeric",
+    timeZone: "UTC",
   }).format(new Date(value));
 }
 
@@ -155,7 +170,7 @@ export default function IdeaBank({ ideas }: Props) {
           </div>
 
           <div className="text-sm text-gray-500">
-            {sortedIdeas.length} / {ideas.length} ideas
+            {formatNumber(sortedIdeas.length)} / {formatNumber(ideas.length)} ideas
           </div>
         </div>
 
@@ -298,15 +313,15 @@ export default function IdeaBank({ ideas }: Props) {
                   </td>
 
                   <td className="p-4">
-                    {Number(idea.views || 0).toLocaleString()}
+                    {formatNumber(idea.views)}
                   </td>
 
                   <td className="p-4">
-                    {Number(idea.ctr || 0).toFixed(1)}%
+                    {formatPercent(idea.ctr)}
                   </td>
 
                   <td className="p-4">
-                    ${Number(idea.revenue || 0).toFixed(0)}
+                    {formatMoney(idea.revenue)}
                   </td>
 
                   <td className="p-4 text-gray-500">
