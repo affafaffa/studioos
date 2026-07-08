@@ -11,6 +11,9 @@ export type Idea = {
   revenue: number | null;
   thumbnail: string | null;
   notes: string | null;
+  hook: string | null;
+  thumbnail_prompt: string | null;
+  storyline: string | null;
   created_at: string;
   updated_at: string | null;
 };

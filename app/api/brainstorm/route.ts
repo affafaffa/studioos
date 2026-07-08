@@ -11,6 +11,9 @@ type GeneratedIdea = {
   language: string;
   status: string;
   score: number;
+  hook: string;
+  thumbnail_prompt: string;
+  storyline: string;
   notes: string;
 };
 
@@ -43,7 +46,10 @@ function buildMockIdeas(
     language,
     status: "Idea",
     score: 85 + (index % 10),
-    notes: `Mock idea for ${theme}. Strong visual hook, easy thumbnail contrast, suitable for testing StudioOS without OpenAI billing.`,
+    hook: `${hook} creates a strong visual contrast and immediate curiosity.`,
+    thumbnail_prompt: `A high-contrast YouTube thumbnail showing ${hook} ${theme}, expressive characters, bright colors, magical transformation effect, dramatic before-and-after composition, clean background, big visual focus.`,
+    storyline: `The main character enters a ${theme} challenge. A conflict appears between two opposite visual identities: ${hook}. The story builds through transformation, competition, surprise reveal, and ends with a satisfying emotional win.`,
+    notes: `Mock idea for ${theme}. Strong visual hook, easy thumbnail contrast, suitable for testing StudioOS without API billing.`,
   }));
 }
 
@@ -91,14 +97,15 @@ export async function POST(request: Request) {
     const prompt = `
 You are StudioOS, an AI assistant for a YouTube content studio.
 
-Generate ${count} YouTube long-form video ideas.
+Generate ${count} long-form YouTube video ideas for visual animated storytelling content.
 
-Context:
-- Target content themes: Huntrix, Mermaid, Princess, School, Fashion, Rainbow, Magic.
-- User makes visual story/challenge/transformation content.
-- Ideas should be catchy, simple, clickable, and suitable for kids/family-friendly animated content.
-- Avoid boring generic titles.
-- Each idea needs a title, theme, language, status, score, and notes.
+The user's content style:
+- Kids/family-friendly animated visual stories.
+- Strong themes: Huntrix, Mermaid, Princess, School, Fashion, Rainbow, Magic.
+- High-performing hooks often include: Gold vs Silver, Rich vs Poor, Angel vs Demon, Mermaid Transformation, Princess Makeover, Fashion Battle, School Challenge, Secret Room, Wedding, Baby Mermaid, Diamond vs Ruby.
+- Ideas should be clickable, visual, easy to understand, and suitable for long-form compilation videos.
+- Avoid generic boring titles.
+- Each idea must have a clear thumbnail concept and storyline.
 
 Input:
 Theme: ${theme}
@@ -114,7 +121,10 @@ Return ONLY valid JSON in this exact format:
       "language": "EN",
       "status": "Idea",
       "score": 91,
-      "notes": "Strong transformation hook with clear visual contrast."
+      "hook": "Gold vs Silver creates instant contrast and a strong transformation promise.",
+      "thumbnail_prompt": "A bright YouTube thumbnail showing two Huntrix girls split into gold and silver sides, magical glow, mermaid tail transformation, shocked expressions, high contrast, clean background.",
+      "storyline": "A Huntrix girl is mocked for being ordinary. She discovers a magical mermaid power and transforms into a gold version while her rival becomes silver. They compete in fashion, school, and ocean challenges before learning to work together.",
+      "notes": "Strong visual contrast, transformation hook, and good potential for thumbnail testing."
     }
   ]
 }

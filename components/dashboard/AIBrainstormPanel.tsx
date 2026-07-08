@@ -13,6 +13,9 @@ type GeneratedIdea = {
   language: string;
   status: string;
   score: number;
+  hook: string;
+  thumbnail_prompt: string;
+  storyline: string;
   notes: string;
 };
 
@@ -99,6 +102,9 @@ export default function AIBrainstormPanel({
       rpm: 0,
       revenue: 0,
       notes: idea.notes || "",
+      hook: idea.hook || "",
+      thumbnail_prompt: idea.thumbnail_prompt || "",
+      storyline: idea.storyline || "",
     }));
 
     const { error } = await supabase
@@ -185,7 +191,7 @@ export default function AIBrainstormPanel({
           <div>
             <h2 className="text-xl font-bold">AI Brainstorm</h2>
             <p className="text-sm text-gray-500">
-              Generate new YouTube ideas, detect duplicates, and save them to your Idea Bank.
+              Generate titles, hooks, thumbnail prompts and storylines.
             </p>
           </div>
         </div>
@@ -264,44 +270,73 @@ export default function AIBrainstormPanel({
       )}
 
       {ideas.length > 0 && (
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 space-y-4">
           {ideaWithDuplicateInfo.map(({ idea, duplicate }) => {
             const isDuplicate = duplicate.isDuplicate;
 
             return (
               <div
                 key={idea.title}
-                className={`border rounded-2xl p-4 flex items-start justify-between gap-4 ${
+                className={`border rounded-2xl p-5 flex items-start justify-between gap-4 ${
                   isDuplicate
                     ? "border-red-100 bg-red-50/40"
                     : "bg-white"
                 }`}
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold">
-                      {idea.title}
-                    </h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg">
+                        {idea.title}
+                      </h3>
 
-                    {isDuplicate && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
-                        <ShieldAlert size={13} />
-                        Duplicate risk
-                      </span>
-                    )}
+                      {isDuplicate && (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                          <ShieldAlert size={13} />
+                          Duplicate risk
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-gray-500 mt-1">
+                      {idea.theme} · {idea.language} · Score {idea.score}
+                    </p>
                   </div>
 
-                  <p className="text-sm text-gray-500 mt-1">
-                    {idea.theme} · {idea.language} · Score {idea.score}
-                  </p>
+                  <div className="rounded-xl bg-gray-50 p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase">
+                      Hook
+                    </p>
+                    <p className="text-sm mt-1">
+                      {idea.hook}
+                    </p>
+                  </div>
 
-                  <p className="text-sm text-gray-600 mt-2">
+                  <div className="rounded-xl bg-gray-50 p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase">
+                      Thumbnail Prompt
+                    </p>
+                    <p className="text-sm mt-1">
+                      {idea.thumbnail_prompt}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-gray-50 p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase">
+                      Storyline
+                    </p>
+                    <p className="text-sm mt-1">
+                      {idea.storyline}
+                    </p>
+                  </div>
+
+                  <p className="text-sm text-gray-600">
                     {idea.notes}
                   </p>
 
                   {duplicate.idea && (
                     <div
-                      className={`mt-3 rounded-xl border p-3 text-sm ${
+                      className={`rounded-xl border p-3 text-sm ${
                         duplicate.isDuplicate
                           ? "bg-red-50 text-red-700 border-red-100"
                           : "bg-yellow-50 text-yellow-700 border-yellow-100"
@@ -330,7 +365,7 @@ export default function AIBrainstormPanel({
                 <button
                   onClick={() => handleSaveIdea(idea)}
                   disabled={savingTitle === idea.title}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border hover:bg-gray-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border hover:bg-gray-50 disabled:opacity-50 shrink-0"
                 >
                   <Save size={16} />
                   {savingTitle === idea.title ? "Saving..." : "Save"}
