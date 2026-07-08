@@ -1,64 +1,91 @@
 "use client";
 
 import {
-  LayoutDashboard,
-  Lightbulb,
-  Video,
   BarChart3,
   Bot,
   Calendar,
+  Clapperboard,
+  LayoutDashboard,
+  Lightbulb,
   Settings,
 } from "lucide-react";
+import type { ActiveView } from "@/types/navigation";
 
-const menus = [
+type Props = {
+  activeView: ActiveView;
+  onChangeView: (view: ActiveView) => void;
+};
+
+const menuItems: {
+  label: string;
+  view: ActiveView;
+  icon: React.ElementType;
+}[] = [
   {
-    icon: LayoutDashboard,
     label: "Dashboard",
+    view: "dashboard",
+    icon: LayoutDashboard,
   },
   {
-    icon: Lightbulb,
     label: "Ideas",
+    view: "ideas",
+    icon: Lightbulb,
   },
   {
-    icon: Video,
     label: "Videos",
+    view: "videos",
+    icon: Clapperboard,
   },
   {
-    icon: BarChart3,
     label: "Analytics",
+    view: "analytics",
+    icon: BarChart3,
   },
   {
-    icon: Bot,
     label: "AI Assistant",
+    view: "ai",
+    icon: Bot,
   },
   {
-    icon: Calendar,
     label: "Calendar",
+    view: "calendar",
+    icon: Calendar,
   },
   {
-    icon: Settings,
     label: "Settings",
+    view: "settings",
+    icon: Settings,
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  activeView,
+  onChangeView,
+}: Props) {
   return (
-    <aside className="w-64 bg-zinc-900 text-white h-screen p-6">
-      <h1 className="text-2xl font-bold mb-10">
-        🎬 StudioOS
-      </h1>
+    <aside className="w-64 bg-zinc-950 text-white flex flex-col">
+      <div className="h-16 flex items-center px-6 border-b border-white/10">
+        <div className="text-2xl font-bold">
+          🎬 StudioOS
+        </div>
+      </div>
 
-      <nav className="space-y-2">
-        {menus.map((item) => {
+      <nav className="flex-1 p-4 space-y-2">
+        {menuItems.map((item) => {
           const Icon = item.icon;
+          const active = activeView === item.view;
 
           return (
             <button
-              key={item.label}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-zinc-800 transition"
+              key={item.view}
+              onClick={() => onChangeView(item.view)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition ${
+                active
+                  ? "bg-white text-zinc-950"
+                  : "text-zinc-300 hover:bg-white/10 hover:text-white"
+              }`}
             >
               <Icon size={20} />
-
               <span>{item.label}</span>
             </button>
           );

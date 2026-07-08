@@ -1,6 +1,4 @@
-import Sidebar from "@/components/layout/Sidebar";
-import Topbar from "@/components/layout/Topbar";
-import Dashboard from "@/components/dashboard/Dashboard";
+import AppShell from "@/components/layout/AppShell";
 import { supabase } from "@/lib/supabase";
 import type { Idea } from "@/types/idea";
 
@@ -16,6 +14,7 @@ export default async function Home() {
         <h1 className="text-2xl font-bold text-red-600">
           Supabase Error
         </h1>
+
         <p className="mt-4">{error.message}</p>
       </main>
     );
@@ -23,17 +22,5 @@ export default async function Home() {
 
   const ideas = (data || []) as Idea[];
 
-  return (
-    <main className="flex h-screen bg-gray-100">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
-
-        <div className="flex-1 overflow-auto">
-          <Dashboard ideas={ideas} />
-        </div>
-      </div>
-    </main>
-  );
+  return <AppShell ideas={ideas} />;
 }
