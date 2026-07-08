@@ -8,7 +8,7 @@ export default async function Home() {
   const { data, error } = await supabase
     .from("ideas")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
 
   if (error) {
     return (
