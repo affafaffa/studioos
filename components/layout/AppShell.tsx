@@ -5,13 +5,15 @@ import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import Dashboard from "@/components/dashboard/Dashboard";
 import type { Idea } from "@/types/idea";
+import type { Video } from "@/types/video";
 import type { ActiveView } from "@/types/navigation";
 
 type Props = {
   ideas: Idea[];
+  videos: Video[];
 };
 
-export default function AppShell({ ideas }: Props) {
+export default function AppShell({ ideas, videos }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>("dashboard");
 
@@ -43,6 +45,7 @@ export default function AppShell({ ideas }: Props) {
         <div className="flex-1 overflow-auto">
           <Dashboard
             ideas={ideas}
+            videos={videos}
             activeView={activeView}
             onChangeView={setActiveView}
             highlightedIdeaId={highlightedIdeaId}
