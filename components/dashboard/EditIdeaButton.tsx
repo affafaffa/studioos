@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Idea } from "@/types/idea";
 
@@ -14,11 +14,27 @@ export default function EditIdeaButton({ idea }: Props) {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState(idea.title);
+
+  const [title, setTitle] = useState(idea.title || "");
   const [theme, setTheme] = useState(idea.theme || "Huntrix");
   const [language, setLanguage] = useState(idea.language || "EN");
   const [status, setStatus] = useState(idea.status || "Idea");
+
   const [score, setScore] = useState(Number(idea.score || 0));
+  const [views, setViews] = useState(Number(idea.views || 0));
+  const [ctr, setCtr] = useState(Number(idea.ctr || 0));
+  const [rpm, setRpm] = useState(Number(idea.rpm || 0));
+  const [revenue, setRevenue] = useState(Number(idea.revenue || 0));
+
+  const [hook, setHook] = useState(idea.hook || "");
+  const [thumbnailPrompt, setThumbnailPrompt] = useState(
+    idea.thumbnail_prompt || ""
+  );
+  const [storyline, setStoryline] = useState(
+    idea.storyline || ""
+  );
+  const [notes, setNotes] = useState(idea.notes || "");
+
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -41,6 +57,14 @@ export default function EditIdeaButton({ idea }: Props) {
         language,
         status,
         score,
+        views,
+        ctr,
+        rpm,
+        revenue,
+        hook,
+        thumbnail_prompt: thumbnailPrompt,
+        storyline,
+        notes,
       })
       .eq("id", idea.id);
 
@@ -59,32 +83,35 @@ export default function EditIdeaButton({ idea }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 text-zinc-700 hover:text-black"
+        className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
       >
         <Pencil size={16} />
         Edit
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl shadow-xl">
+            <div className="sticky top-0 bg-white border-b p-6 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold">Edit Idea</h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  Update this content idea.
+                <h2 className="text-2xl font-bold">
+                  Edit Idea
+                </h2>
+
+                <p className="text-sm text-gray-500 mt-1">
+                  Update title, performance data and AI brief.
                 </p>
               </div>
 
               <button
                 onClick={() => setOpen(false)}
-                className="text-gray-500 hover:text-black"
+                className="w-9 h-9 rounded-xl border flex items-center justify-center hover:bg-gray-50"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Title
@@ -97,7 +124,7 @@ export default function EditIdeaButton({ idea }: Props) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Theme
@@ -137,9 +164,7 @@ export default function EditIdeaButton({ idea }: Props) {
                     <option>VI</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Status
@@ -168,9 +193,148 @@ export default function EditIdeaButton({ idea }: Props) {
                     min="0"
                     max="100"
                     value={score}
-                    onChange={(event) => setScore(Number(event.target.value))}
+                    onChange={(event) =>
+                      setScore(Number(event.target.value))
+                    }
                     className="w-full border rounded-xl px-4 py-3"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Views
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={views}
+                    onChange={(event) =>
+                      setViews(Number(event.target.value))
+                    }
+                    className="w-full border rounded-xl px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    CTR
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={ctr}
+                    onChange={(event) =>
+                      setCtr(Number(event.target.value))
+                    }
+                    className="w-full border rounded-xl px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    RPM
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={rpm}
+                    onChange={(event) =>
+                      setRpm(Number(event.target.value))
+                    }
+                    className="w-full border rounded-xl px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Revenue
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={revenue}
+                    onChange={(event) =>
+                      setRevenue(Number(event.target.value))
+                    }
+                    className="w-full border rounded-xl px-4 py-3"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-bold mb-4">
+                  AI Brief
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Hook
+                    </label>
+
+                    <textarea
+                      value={hook}
+                      onChange={(event) => setHook(event.target.value)}
+                      rows={3}
+                      placeholder="Gold vs Silver creates instant contrast..."
+                      className="w-full border rounded-xl px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Thumbnail Prompt
+                    </label>
+
+                    <textarea
+                      value={thumbnailPrompt}
+                      onChange={(event) =>
+                        setThumbnailPrompt(event.target.value)
+                      }
+                      rows={5}
+                      placeholder="A high-contrast YouTube thumbnail..."
+                      className="w-full border rounded-xl px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Storyline
+                    </label>
+
+                    <textarea
+                      value={storyline}
+                      onChange={(event) =>
+                        setStoryline(event.target.value)
+                      }
+                      rows={5}
+                      placeholder="The main character enters a visual challenge..."
+                      className="w-full border rounded-xl px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Notes
+                    </label>
+
+                    <textarea
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      rows={4}
+                      placeholder="Strong visual contrast, transformation hook..."
+                      className="w-full border rounded-xl px-4 py-3"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -180,7 +344,7 @@ export default function EditIdeaButton({ idea }: Props) {
                 </p>
               )}
 
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="sticky bottom-0 bg-white border-t pt-4 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
