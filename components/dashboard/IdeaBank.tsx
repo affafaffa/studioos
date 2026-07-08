@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Idea } from "@/types/idea";
 import DeleteIdeaButton from "./DeleteIdeaButton";
 import EditIdeaButton from "./EditIdeaButton";
+import ViewIdeaButton from "./ViewIdeaButton";
 
 type Props = {
   ideas: Idea[];
@@ -165,7 +166,7 @@ export default function IdeaBank({ ideas }: Props) {
             <h2 className="text-xl font-bold">Idea Bank</h2>
 
             <p className="text-gray-500 text-sm mt-1">
-              Track themes, language, status and performance.
+              Track themes, language, prompts, storylines and performance.
             </p>
           </div>
 
@@ -212,7 +213,7 @@ export default function IdeaBank({ ideas }: Props) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500">
             <tr>
-              <th className="text-left p-4 min-w-72">Title</th>
+              <th className="text-left p-4 min-w-80">Title</th>
               <th className="text-left p-4">Theme</th>
               <th className="text-left p-4">Language</th>
               <th className="text-left p-4">Status</th>
@@ -267,7 +268,7 @@ export default function IdeaBank({ ideas }: Props) {
                 />
               </th>
 
-              <th className="text-left p-4">Actions</th>
+              <th className="text-left p-4 min-w-52">Actions</th>
             </tr>
           </thead>
 
@@ -285,9 +286,16 @@ export default function IdeaBank({ ideas }: Props) {
                 >
                   <td className="p-4 font-medium">
                     <div>{idea.title}</div>
+
                     <div className="text-xs text-gray-400 mt-1">
                       ID #{idea.id}
                     </div>
+
+                    {(idea.hook || idea.thumbnail_prompt || idea.storyline) && (
+                      <div className="text-xs text-blue-600 mt-2">
+                        Has AI brief
+                      </div>
+                    )}
                   </td>
 
                   <td className="p-4">
@@ -330,6 +338,8 @@ export default function IdeaBank({ ideas }: Props) {
 
                   <td className="p-4">
                     <div className="flex items-center gap-4">
+                      <ViewIdeaButton idea={idea} />
+
                       <EditIdeaButton idea={idea} />
 
                       <DeleteIdeaButton
