@@ -1,12 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, Copy, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Eye, Copy, X, Sparkles, Save } from "lucide-react";
 import type { Idea } from "@/types/idea";
+import { supabase } from "@/lib/supabase";
 
 type Props = {
   idea: Idea;
 };
+
+type ImprovedBrief = {
+  hook: string;
+  thumbnail_prompt: string;
+  storyline: string;
+  notes: string;
+};
+
+function parseJsonSafely(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 function DetailBlock({
   label,
@@ -54,7 +71,112 @@ function DetailBlock({
 }
 
 export default function ViewIdeaButton({ idea }: Props) {
+  const router = useRouter();
+
   const [open, setOpen] = useState(false);
+
+  const [hook, setHook] = useState(idea.hook || "");
+  const [thumbnailPrompt, setThumbnailPrompt] = useState(
+    idea.thumbnail_prompt || ""
+  );
+  const [storyline, setStoryline] = useState(
+    idea.storyline || ""
+  );
+  const [notes, setNotes] = useState(idea.notes || "");
+
+  const [improvedBrief, setImprovedBrief] =
+    useState<ImprovedBrief | null>(null);
+
+  const [improving, setImproving] = useState(false);
+  const [savingImproved, setSavingImproved] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleImproveBrief() {
+    setImproving(true);
+    setErrorMessage("");
+    setImprovedBrief(null);
+
+    try {
+      const response = await fetch("/api/improve-brief", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: idea.title,
+          theme: idea.theme,
+          language: idea.language,
+          hook,
+          thumbnail_prompt: thumbnailPrompt,
+          storyline,
+          notes,
+        }),
+      });
+
+      const text = await response.text();
+      const result = text ? parseJsonSafely(text) : null;
+
+      setImproving(false);
+
+      if (!result) {
+        setErrorMessage(
+          "AI Improve API did not return valid JSON. Please check app/api/improve-brief/route.ts and restart the dev server."
+        );
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(result.error || "Failed to improve brief.");
+        return;
+      }
+
+      if (!result.brief) {
+        setErrorMessage("AI response is missing brief data.");
+        return;
+      }
+
+      setImprovedBrief(result.brief);
+    } catch (error) {
+      setImproving(false);
+
+      const message =
+        error instanceof Error ? error.message : "Unknown error";
+
+      setErrorMessage(message);
+    }
+  }
+
+  async function handleSaveImprovedBrief() {
+    if (!improvedBrief) return;
+
+    setSavingImproved(true);
+    setErrorMessage("");
+
+    const { error } = await supabase
+      .from("ideas")
+      .update({
+        hook: improvedBrief.hook,
+        thumbnail_prompt: improvedBrief.thumbnail_prompt,
+        storyline: improvedBrief.storyline,
+        notes: improvedBrief.notes,
+      })
+      .eq("id", idea.id);
+
+    setSavingImproved(false);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setHook(improvedBrief.hook);
+    setThumbnailPrompt(improvedBrief.thumbnail_prompt);
+    setStoryline(improvedBrief.storyline);
+    setNotes(improvedBrief.notes);
+    setImprovedBrief(null);
+
+    router.refresh();
+  }
 
   return (
     <>
@@ -68,7 +190,7 @@ export default function ViewIdeaButton({ idea }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl shadow-xl">
+          <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl shadow-xl">
             <div className="sticky top-0 bg-white border-b p-6 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold">
@@ -80,34 +202,98 @@ export default function ViewIdeaButton({ idea }: Props) {
                 </p>
               </div>
 
-              <button
-                onClick={() => setOpen(false)}
-                className="w-9 h-9 rounded-xl border flex items-center justify-center hover:bg-gray-50"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleImproveBrief}
+                  disabled={improving}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  <Sparkles size={16} />
+                  {improving ? "Improving..." : "AI Improve Brief"}
+                </button>
+
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-9 h-9 rounded-xl border flex items-center justify-center hover:bg-gray-50"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="p-6 space-y-4">
+              {errorMessage && (
+                <div className="rounded-xl border border-red-100 bg-red-50 text-red-700 p-4 text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
               <DetailBlock
                 label="Hook"
-                value={idea.hook}
+                value={hook}
               />
 
               <DetailBlock
                 label="Thumbnail Prompt"
-                value={idea.thumbnail_prompt}
+                value={thumbnailPrompt}
               />
 
               <DetailBlock
                 label="Storyline"
-                value={idea.storyline}
+                value={storyline}
               />
 
               <DetailBlock
                 label="Notes"
-                value={idea.notes}
+                value={notes}
               />
+
+              {improvedBrief && (
+                <div className="rounded-2xl border-2 border-zinc-900 p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold">
+                        AI Improved Brief Preview
+                      </h3>
+
+                      <p className="text-sm text-gray-500 mt-1">
+                        Review the improved version before saving.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleSaveImprovedBrief}
+                      disabled={savingImproved}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      <Save size={16} />
+                      {savingImproved
+                        ? "Saving..."
+                        : "Save Improved Brief"}
+                    </button>
+                  </div>
+
+                  <DetailBlock
+                    label="Improved Hook"
+                    value={improvedBrief.hook}
+                  />
+
+                  <DetailBlock
+                    label="Improved Thumbnail Prompt"
+                    value={improvedBrief.thumbnail_prompt}
+                  />
+
+                  <DetailBlock
+                    label="Improved Storyline"
+                    value={improvedBrief.storyline}
+                  />
+
+                  <DetailBlock
+                    label="Improved Notes"
+                    value={improvedBrief.notes}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-4 gap-4 pt-2">
                 <div className="rounded-2xl border p-4">
