@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import RemixCompetitorVideoButton from "@/components/competitors/RemixCompetitorVideoButton";
 import type {
   CompetitorChannel,
   CompetitorGroup,
@@ -964,7 +965,7 @@ export default function CompetitorVideosPanel({
               </h2>
 
               <p className="text-sm text-gray-500 mt-1">
-                Filter and sort synced videos by traffic, theme, hook and publishing window.
+                Filter, sort, and remix synced competitor videos.
               </p>
             </div>
 
@@ -1171,7 +1172,7 @@ export default function CompetitorVideosPanel({
                   Score
                 </th>
 
-                <th className="text-left p-4 min-w-52">
+                <th className="text-left p-4 min-w-72">
                   Actions
                 </th>
               </tr>
@@ -1290,6 +1291,12 @@ export default function CompetitorVideosPanel({
 
                     <td className="p-4">
                       <div className="flex items-center gap-4">
+                        <RemixCompetitorVideoButton
+                          video={video}
+                          channelName={channel?.channel_name || video.channel_title || ""}
+                          groupName={group?.name || ""}
+                        />
+
                         <button
                           onClick={() => setEditingVideo(video)}
                           className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
