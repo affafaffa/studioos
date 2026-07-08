@@ -1,10 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { findMostSimilarIdea } from "@/lib/duplicate";
+import type { Idea } from "@/types/idea";
 
-export default function AddIdeaButton() {
+type Props = {
+  ideas: Idea[];
+};
+
+export default function AddIdeaButton({ ideas }: Props) {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -16,12 +22,24 @@ export default function AddIdeaButton() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const duplicate = useMemo(() => {
+    return findMostSimilarIdea(title, ideas);
+  }, [title, ideas]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!title.trim()) {
       setErrorMessage("Title is required.");
       return;
+    }
+
+    if (duplicate.isDuplicate) {
+      const confirmed = window.confirm(
+        `This idea looks similar to an existing idea.\n\nExisting: ${duplicate.idea?.title}\nSimilarity: ${duplicate.percentage}%\n\nSave anyway?`
+      );
+
+      if (!confirmed) return;
     }
 
     setLoading(true);
@@ -89,12 +107,40 @@ export default function AddIdeaButton() {
                 <label className="block text-sm font-medium mb-2">
                   Title
                 </label>
+
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Gold vs Silver Huntrix..."
                   className="w-full border rounded-xl px-4 py-3"
                 />
+
+                {title.trim() && duplicate.idea && (
+                  <div
+                    className={`mt-3 rounded-xl border p-3 text-sm ${
+                      duplicate.isDuplicate
+                        ? "bg-red-50 text-red-700 border-red-100"
+                        : "bg-yellow-50 text-yellow-700 border-yellow-100"
+                    }`}
+                  >
+                    <p className="font-semibold">
+                      {duplicate.isDuplicate
+                        ? "Possible duplicate detected"
+                        : "Similar idea found"}
+                    </p>
+
+                    <p className="mt-1">
+                      Similar to:{" "}
+                      <span className="font-medium">
+                        {duplicate.idea.title}
+                      </span>
+                    </p>
+
+                    <p className="mt-1">
+                      Similarity: {duplicate.percentage}%
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -102,6 +148,7 @@ export default function AddIdeaButton() {
                   <label className="block text-sm font-medium mb-2">
                     Theme
                   </label>
+
                   <select
                     value={theme}
                     onChange={(event) => setTheme(event.target.value)}
@@ -121,6 +168,7 @@ export default function AddIdeaButton() {
                   <label className="block text-sm font-medium mb-2">
                     Language
                   </label>
+
                   <select
                     value={language}
                     onChange={(event) => setLanguage(event.target.value)}
@@ -142,6 +190,7 @@ export default function AddIdeaButton() {
                   <label className="block text-sm font-medium mb-2">
                     Status
                   </label>
+
                   <select
                     value={status}
                     onChange={(event) => setStatus(event.target.value)}
@@ -159,6 +208,7 @@ export default function AddIdeaButton() {
                   <label className="block text-sm font-medium mb-2">
                     Score
                   </label>
+
                   <input
                     type="number"
                     min="0"

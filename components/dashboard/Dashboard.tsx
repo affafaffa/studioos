@@ -51,7 +51,7 @@ export default function Dashboard({ ideas }: Props) {
           </p>
         </div>
 
-        <AddIdeaButton />
+        <AddIdeaButton ideas={ideas} />
       </div>
 
       <div className="grid grid-cols-4 gap-6 mb-8">
@@ -76,7 +76,7 @@ export default function Dashboard({ ideas }: Props) {
         />
       </div>
 
-      <AIBrainstormPanel />
+      <AIBrainstormPanel existingIdeas={ideas} />
 
       <IdeaBank ideas={ideas} />
     </div>

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Save } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { findMostSimilarIdea } from "@/lib/duplicate";
+import type { Idea } from "@/types/idea";
 
 type GeneratedIdea = {
   title: string;
@@ -14,7 +16,13 @@ type GeneratedIdea = {
   notes: string;
 };
 
-export default function AIBrainstormPanel() {
+type Props = {
+  existingIdeas: Idea[];
+};
+
+export default function AIBrainstormPanel({
+  existingIdeas,
+}: Props) {
   const router = useRouter();
 
   const [theme, setTheme] = useState("Huntrix");
@@ -55,6 +63,19 @@ export default function AIBrainstormPanel() {
   }
 
   async function handleSaveIdea(idea: GeneratedIdea) {
+    const duplicate = findMostSimilarIdea(
+      idea.title,
+      existingIdeas
+    );
+
+    if (duplicate.isDuplicate) {
+      const confirmed = window.confirm(
+        `This AI idea looks similar to an existing idea.\n\nExisting: ${duplicate.idea?.title}\nSimilarity: ${duplicate.percentage}%\n\nSave anyway?`
+      );
+
+      if (!confirmed) return;
+    }
+
     setSavingTitle(idea.title);
 
     const { error } = await supabase.from("ideas").insert({
@@ -154,35 +175,69 @@ export default function AIBrainstormPanel() {
 
       {ideas.length > 0 && (
         <div className="mt-6 space-y-3">
-          {ideas.map((idea) => (
-            <div
-              key={idea.title}
-              className="border rounded-2xl p-4 flex items-start justify-between gap-4"
-            >
-              <div>
-                <h3 className="font-semibold">
-                  {idea.title}
-                </h3>
+          {ideas.map((idea) => {
+            const duplicate = findMostSimilarIdea(
+              idea.title,
+              existingIdeas
+            );
 
-                <p className="text-sm text-gray-500 mt-1">
-                  {idea.theme} · {idea.language} · Score {idea.score}
-                </p>
-
-                <p className="text-sm text-gray-600 mt-2">
-                  {idea.notes}
-                </p>
-              </div>
-
-              <button
-                onClick={() => handleSaveIdea(idea)}
-                disabled={savingTitle === idea.title}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border hover:bg-gray-50 disabled:opacity-50"
+            return (
+              <div
+                key={idea.title}
+                className="border rounded-2xl p-4 flex items-start justify-between gap-4"
               >
-                <Save size={16} />
-                {savingTitle === idea.title ? "Saving..." : "Save"}
-              </button>
-            </div>
-          ))}
+                <div>
+                  <h3 className="font-semibold">
+                    {idea.title}
+                  </h3>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    {idea.theme} · {idea.language} · Score {idea.score}
+                  </p>
+
+                  <p className="text-sm text-gray-600 mt-2">
+                    {idea.notes}
+                  </p>
+
+                  {duplicate.idea && (
+                    <div
+                      className={`mt-3 rounded-xl border p-3 text-sm ${
+                        duplicate.isDuplicate
+                          ? "bg-red-50 text-red-700 border-red-100"
+                          : "bg-yellow-50 text-yellow-700 border-yellow-100"
+                      }`}
+                    >
+                      <p className="font-semibold">
+                        {duplicate.isDuplicate
+                          ? "Possible duplicate detected"
+                          : "Similar idea found"}
+                      </p>
+
+                      <p className="mt-1">
+                        Similar to:{" "}
+                        <span className="font-medium">
+                          {duplicate.idea.title}
+                        </span>
+                      </p>
+
+                      <p className="mt-1">
+                        Similarity: {duplicate.percentage}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleSaveIdea(idea)}
+                  disabled={savingTitle === idea.title}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <Save size={16} />
+                  {savingTitle === idea.title ? "Saving..." : "Save"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
