@@ -1,10 +1,12 @@
 "use client";
 
+import type { ElementType } from "react";
 import {
   BarChart3,
   Bot,
   Calendar,
   Clapperboard,
+  FolderSearch,
   LayoutDashboard,
   Lightbulb,
   Settings,
@@ -19,7 +21,7 @@ type Props = {
 const menuItems: {
   label: string;
   view: ActiveView;
-  icon: React.ElementType;
+  icon: ElementType;
 }[] = [
   {
     label: "Dashboard",
@@ -35,6 +37,11 @@ const menuItems: {
     label: "Videos",
     view: "videos",
     icon: Clapperboard,
+  },
+  {
+    label: "Competitors",
+    view: "competitors",
+    icon: FolderSearch,
   },
   {
     label: "Analytics",

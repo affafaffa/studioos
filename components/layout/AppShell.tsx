@@ -6,14 +6,25 @@ import Topbar from "@/components/layout/Topbar";
 import Dashboard from "@/components/dashboard/Dashboard";
 import type { Idea } from "@/types/idea";
 import type { Video } from "@/types/video";
+import type {
+  CompetitorChannel,
+  CompetitorGroup,
+} from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
 
 type Props = {
   ideas: Idea[];
   videos: Video[];
+  competitorGroups: CompetitorGroup[];
+  competitorChannels: CompetitorChannel[];
 };
 
-export default function AppShell({ ideas, videos }: Props) {
+export default function AppShell({
+  ideas,
+  videos,
+  competitorGroups,
+  competitorChannels,
+}: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>("dashboard");
 
@@ -46,6 +57,8 @@ export default function AppShell({ ideas, videos }: Props) {
           <Dashboard
             ideas={ideas}
             videos={videos}
+            competitorGroups={competitorGroups}
+            competitorChannels={competitorChannels}
             activeView={activeView}
             onChangeView={setActiveView}
             highlightedIdeaId={highlightedIdeaId}

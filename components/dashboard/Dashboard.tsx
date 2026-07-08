@@ -5,13 +5,20 @@ import IdeaBank from "./IdeaBank";
 import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
+import CompetitorIntelligence from "@/components/competitors/CompetitorIntelligence";
 import type { Idea } from "@/types/idea";
 import type { Video } from "@/types/video";
+import type {
+  CompetitorChannel,
+  CompetitorGroup,
+} from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
 
 type Props = {
   ideas: Idea[];
   videos: Video[];
+  competitorGroups: CompetitorGroup[];
+  competitorChannels: CompetitorChannel[];
   activeView: ActiveView;
   onChangeView: (view: ActiveView) => void;
   highlightedIdeaId: number | null;
@@ -76,11 +83,15 @@ function PlaceholderView({
 export default function Dashboard({
   ideas,
   videos,
+  competitorGroups,
+  competitorChannels,
   activeView,
   highlightedIdeaId,
 }: Props) {
   const safeIdeas = ideas || [];
   const safeVideos = videos || [];
+  const safeCompetitorGroups = competitorGroups || [];
+  const safeCompetitorChannels = competitorChannels || [];
 
   const totalIdeas = safeIdeas.length;
 
@@ -181,12 +192,28 @@ export default function Dashboard({
     );
   }
 
+  if (activeView === "competitors") {
+    return (
+      <div className="p-8 bg-gray-100 min-h-screen">
+        <SectionHeader
+          title="Competitors"
+          description="Organize competitor groups and YouTube channels before syncing videos."
+        />
+
+        <CompetitorIntelligence
+          competitorGroups={safeCompetitorGroups}
+          competitorChannels={safeCompetitorChannels}
+        />
+      </div>
+    );
+  }
+
   if (activeView === "analytics") {
     return (
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Analytics"
-          description="Quick overview of idea and video performance."
+          description="Quick overview of idea, video and competitor tracking."
         />
 
         {kpiCards}
@@ -203,8 +230,8 @@ export default function Dashboard({
           />
 
           <KPICard
-            title="Video Revenue"
-            value={formatMoney(videoRevenue)}
+            title="Competitor Channels"
+            value={formatNumber(safeCompetitorChannels.length)}
           />
 
           <KPICard
