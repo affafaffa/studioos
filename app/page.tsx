@@ -5,6 +5,7 @@ import type { Video } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
+  CompetitorVideo,
 } from "@/types/competitor";
 
 export default async function Home() {
@@ -13,6 +14,7 @@ export default async function Home() {
     videosResult,
     competitorGroupsResult,
     competitorChannelsResult,
+    competitorVideosResult,
   ] = await Promise.all([
     supabase
       .from("ideas")
@@ -33,13 +35,19 @@ export default async function Home() {
       .from("competitor_channels")
       .select("*")
       .order("updated_at", { ascending: false }),
+
+    supabase
+      .from("competitor_videos")
+      .select("*")
+      .order("view_count", { ascending: false }),
   ]);
 
   const error =
     ideasResult.error ||
     videosResult.error ||
     competitorGroupsResult.error ||
-    competitorChannelsResult.error;
+    competitorChannelsResult.error ||
+    competitorVideosResult.error;
 
   if (error) {
     return (
@@ -62,12 +70,16 @@ export default async function Home() {
   const competitorChannels =
     (competitorChannelsResult.data || []) as CompetitorChannel[];
 
+  const competitorVideos =
+    (competitorVideosResult.data || []) as CompetitorVideo[];
+
   return (
     <AppShell
       ideas={ideas}
       videos={videos}
       competitorGroups={competitorGroups}
       competitorChannels={competitorChannels}
+      competitorVideos={competitorVideos}
     />
   );
 }

@@ -9,6 +9,7 @@ import type { Video } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
+  CompetitorVideo,
 } from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
 
@@ -17,6 +18,7 @@ type Props = {
   videos: Video[];
   competitorGroups: CompetitorGroup[];
   competitorChannels: CompetitorChannel[];
+  competitorVideos: CompetitorVideo[];
 };
 
 export default function AppShell({
@@ -24,6 +26,7 @@ export default function AppShell({
   videos,
   competitorGroups,
   competitorChannels,
+  competitorVideos,
 }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>("dashboard");
@@ -59,6 +62,7 @@ export default function AppShell({
             videos={videos}
             competitorGroups={competitorGroups}
             competitorChannels={competitorChannels}
+            competitorVideos={competitorVideos}
             activeView={activeView}
             onChangeView={setActiveView}
             highlightedIdeaId={highlightedIdeaId}

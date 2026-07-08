@@ -1,16 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import KPICard from "./KPICard";
 import IdeaBank from "./IdeaBank";
 import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
 import CompetitorIntelligence from "@/components/competitors/CompetitorIntelligence";
+import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
+import CompetitorVideosPanel from "@/components/competitors/CompetitorVideosPanel";
 import type { Idea } from "@/types/idea";
 import type { Video } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
+  CompetitorVideo,
 } from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
 
@@ -19,6 +23,7 @@ type Props = {
   videos: Video[];
   competitorGroups: CompetitorGroup[];
   competitorChannels: CompetitorChannel[];
+  competitorVideos?: CompetitorVideo[];
   activeView: ActiveView;
   onChangeView: (view: ActiveView) => void;
   highlightedIdeaId: number | null;
@@ -41,7 +46,7 @@ function SectionHeader({
 }: {
   title: string;
   description: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between mb-8">
@@ -85,6 +90,7 @@ export default function Dashboard({
   videos,
   competitorGroups,
   competitorChannels,
+  competitorVideos,
   activeView,
   highlightedIdeaId,
 }: Props) {
@@ -92,6 +98,7 @@ export default function Dashboard({
   const safeVideos = videos || [];
   const safeCompetitorGroups = competitorGroups || [];
   const safeCompetitorChannels = competitorChannels || [];
+  const safeCompetitorVideos = competitorVideos || [];
 
   const totalIdeas = safeIdeas.length;
 
@@ -138,6 +145,11 @@ export default function Dashboard({
     (video) => video.status === "Published"
   );
 
+  const competitorViews = safeCompetitorVideos.reduce(
+    (sum, video) => sum + Number(video.view_count || 0),
+    0
+  );
+
   const kpiCards = (
     <div className="grid grid-cols-4 gap-6 mb-8">
       <KPICard
@@ -179,25 +191,40 @@ export default function Dashboard({
     );
   }
 
-  if (activeView === "ai") {
+  if (activeView === "videos") {
     return (
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
-          title="AI Assistant"
-          description="Generate, improve and save creative briefs."
+          title="Videos"
+          description="Track video production, publishing and performance."
         />
 
-        <AIBrainstormPanel existingIdeas={safeIdeas} />
+        <VideoPipeline
+          ideas={safeIdeas}
+          videos={safeVideos}
+        />
       </div>
     );
   }
 
   if (activeView === "competitors") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="p-8 bg-gray-100 min-h-screen space-y-8">
         <SectionHeader
           title="Competitors"
-          description="Organize competitor groups and YouTube channels before syncing videos."
+          description="Track competitor groups, channels and video metadata."
+          action={
+            <BulkImportChannelsButton
+              groups={safeCompetitorGroups}
+              existingChannels={safeCompetitorChannels}
+            />
+          }
+        />
+
+        <CompetitorVideosPanel
+          competitorGroups={safeCompetitorGroups}
+          competitorChannels={safeCompetitorChannels}
+          competitorVideos={safeCompetitorVideos}
         />
 
         <CompetitorIntelligence
@@ -230,13 +257,13 @@ export default function Dashboard({
           />
 
           <KPICard
-            title="Competitor Channels"
-            value={formatNumber(safeCompetitorChannels.length)}
+            title="Competitor Videos"
+            value={formatNumber(safeCompetitorVideos.length)}
           />
 
           <KPICard
-            title="Total Revenue"
-            value={formatMoney(totalRevenue + videoRevenue)}
+            title="Competitor Views"
+            value={formatNumber(competitorViews)}
           />
         </div>
 
@@ -305,18 +332,15 @@ export default function Dashboard({
     );
   }
 
-  if (activeView === "videos") {
+  if (activeView === "ai") {
     return (
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
-          title="Videos"
-          description="Track video production, publishing and performance."
+          title="AI Assistant"
+          description="Generate, improve and save creative briefs."
         />
 
-        <VideoPipeline
-          ideas={safeIdeas}
-          videos={safeVideos}
-        />
+        <AIBrainstormPanel existingIdeas={safeIdeas} />
       </div>
     );
   }
