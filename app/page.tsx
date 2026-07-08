@@ -1,55 +1,39 @@
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-slate-100 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white p-6">
-        <h1 className="text-2xl font-bold mb-10">
-          🎬 StudioOS
+import Sidebar from "@/components/layout/Sidebar";
+import Topbar from "@/components/layout/Topbar";
+import Dashboard from "@/components/dashboard/Dashboard";
+import { supabase } from "@/lib/supabase";
+import type { Idea } from "@/types/idea";
+
+export default async function Home() {
+  const { data, error } = await supabase
+    .from("ideas")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return (
+      <main className="p-10">
+        <h1 className="text-2xl font-bold text-red-600">
+          Supabase Error
         </h1>
+        <p className="mt-4">{error.message}</p>
+      </main>
+    );
+  }
 
-        <nav className="space-y-4">
-          <p>🏠 Dashboard</p>
-          <p>💡 Ideas</p>
-          <p>🎬 Videos</p>
-          <p>📁 Assets</p>
-          <p>🖼️ Thumbnails</p>
-          <p>👥 Characters</p>
-          <p>📈 Analytics</p>
-          <p>🤖 Brainstorm</p>
-          <p>⚙️ Settings</p>
-        </nav>
-      </aside>
+  const ideas = (data || []) as Idea[];
 
-      {/* Main */}
-      <section className="flex-1 p-10">
-        <h2 className="text-4xl font-bold">
-          Dashboard
-        </h2>
+  return (
+    <main className="flex h-screen bg-gray-100">
+      <Sidebar />
 
-        <div className="grid grid-cols-4 gap-6 mt-10">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Topbar />
 
-          <div className="bg-white rounded-xl p-6 shadow">
-            <p>Videos</p>
-            <h3 className="text-3xl font-bold">0</h3>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow">
-            <p>Ideas</p>
-            <h3 className="text-3xl font-bold">0</h3>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow">
-            <p>Views</p>
-            <h3 className="text-3xl font-bold">0</h3>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow">
-            <p>Revenue</p>
-            <h3 className="text-3xl font-bold">$0</h3>
-          </div>
-
+        <div className="flex-1 overflow-auto">
+          <Dashboard ideas={ideas} />
         </div>
-      </section>
+      </div>
     </main>
   );
 }
