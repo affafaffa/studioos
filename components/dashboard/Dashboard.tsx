@@ -11,6 +11,7 @@ type Props = {
   ideas: Idea[];
   activeView: ActiveView;
   onChangeView: (view: ActiveView) => void;
+  highlightedIdeaId: number | null;
 };
 
 function formatNumber(value: number) {
@@ -72,7 +73,7 @@ function PlaceholderView({
 export default function Dashboard({
   ideas,
   activeView,
-  onChangeView,
+  highlightedIdeaId,
 }: Props) {
   const totalIdeas = ideas.length;
 
@@ -143,7 +144,10 @@ export default function Dashboard({
           action={<AddIdeaButton ideas={ideas} />}
         />
 
-        <IdeaBank ideas={ideas} />
+        <IdeaBank
+          ideas={ideas}
+          highlightedIdeaId={highlightedIdeaId}
+        />
       </div>
     );
   }
@@ -283,7 +287,10 @@ export default function Dashboard({
 
       <AIBrainstormPanel existingIdeas={ideas} />
 
-      <IdeaBank ideas={ideas} />
+      <IdeaBank
+        ideas={ideas}
+        highlightedIdeaId={highlightedIdeaId}
+      />
     </div>
   );
 }

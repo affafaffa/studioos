@@ -15,6 +15,17 @@ export default function AppShell({ ideas }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>("dashboard");
 
+  const [highlightedIdeaId, setHighlightedIdeaId] =
+    useState<number | null>(null);
+
+  function handleHighlightIdea(ideaId: number) {
+    setHighlightedIdeaId(null);
+
+    setTimeout(() => {
+      setHighlightedIdeaId(ideaId);
+    }, 50);
+  }
+
   return (
     <main className="flex h-screen bg-gray-100">
       <Sidebar
@@ -23,13 +34,18 @@ export default function AppShell({ ideas }: Props) {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
+        <Topbar
+          ideas={ideas}
+          onChangeView={setActiveView}
+          onHighlightIdea={handleHighlightIdea}
+        />
 
         <div className="flex-1 overflow-auto">
           <Dashboard
             ideas={ideas}
             activeView={activeView}
             onChangeView={setActiveView}
+            highlightedIdeaId={highlightedIdeaId}
           />
         </div>
       </div>

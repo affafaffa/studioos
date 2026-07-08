@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Idea } from "@/types/idea";
 import DeleteIdeaButton from "./DeleteIdeaButton";
 import EditIdeaButton from "./EditIdeaButton";
@@ -8,6 +8,7 @@ import ViewIdeaButton from "./ViewIdeaButton";
 
 type Props = {
   ideas: Idea[];
+  highlightedIdeaId?: number | null;
 };
 
 type SortKey =
@@ -80,13 +81,31 @@ function SortButton({
   );
 }
 
-export default function IdeaBank({ ideas }: Props) {
+export default function IdeaBank({
+  ideas,
+  highlightedIdeaId,
+}: Props) {
+  const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+
   const [search, setSearch] = useState("");
   const [theme, setTheme] = useState("All");
   const [status, setStatus] = useState("All");
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
   const [sortDirection, setSortDirection] =
     useState<SortDirection>("desc");
+
+  useEffect(() => {
+    if (!highlightedIdeaId) return;
+
+    const row = rowRefs.current[highlightedIdeaId];
+
+    if (row) {
+      row.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedIdeaId]);
 
   const themes = useMemo(() => {
     return [
@@ -279,10 +298,20 @@ export default function IdeaBank({ ideas }: Props) {
                 statusStyles[statusName] ||
                 "bg-gray-50 text-gray-700 border-gray-100";
 
+              const isHighlighted =
+                highlightedIdeaId === idea.id;
+
               return (
                 <tr
                   key={idea.id}
-                  className="border-t hover:bg-gray-50"
+                  ref={(element) => {
+                    rowRefs.current[idea.id] = element;
+                  }}
+                  className={`border-t transition ${
+                    isHighlighted
+                      ? "bg-blue-50 ring-2 ring-blue-300"
+                      : "hover:bg-gray-50"
+                  }`}
                 >
                   <td className="p-4 font-medium">
                     <div>{idea.title}</div>
