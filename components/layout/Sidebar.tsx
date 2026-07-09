@@ -21,6 +21,7 @@ import {
   Sparkles,
   Target,
   WandSparkles,
+  X,
 } from "lucide-react";
 import type { ActiveView } from "@/types/navigation";
 
@@ -43,6 +44,8 @@ type AnalystSection =
 type Props = {
   activeView: ActiveView;
   onChangeView: (view: ActiveView) => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 };
 
 const navItems: {
@@ -208,6 +211,8 @@ function normalizeAnalystSection(value: string | null): AnalystSection {
 export default function Sidebar({
   activeView,
   onChangeView,
+  mobileOpen = false,
+  onCloseMobile,
 }: Props) {
   const [activeIdeaSection, setActiveIdeaSection] =
     useState<IdeaSection>("create-ideas");
@@ -300,6 +305,12 @@ export default function Sidebar({
     };
   }, []);
 
+  function closeMobileAfterClick() {
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  }
+
   function changeIdeaSection(section: IdeaSection) {
     setActiveIdeaSection(section);
     onChangeView("ideas");
@@ -313,6 +324,8 @@ export default function Sidebar({
         },
       })
     );
+
+    closeMobileAfterClick();
   }
 
   function changeCompetitorSection(section: CompetitorSection) {
@@ -328,6 +341,8 @@ export default function Sidebar({
         },
       })
     );
+
+    closeMobileAfterClick();
   }
 
   function changeAnalystSection(section: AnalystSection) {
@@ -343,6 +358,8 @@ export default function Sidebar({
         },
       })
     );
+
+    closeMobileAfterClick();
   }
 
   function handleMainClick(view: ActiveView) {
@@ -350,24 +367,29 @@ export default function Sidebar({
 
     if (view === "ideas") {
       changeIdeaSection(activeIdeaSection);
+      return;
     }
 
     if (view === "competitors") {
       changeCompetitorSection(activeCompetitorSection);
+      return;
     }
 
     if (view === "analyst") {
       changeAnalystSection(activeAnalystSection);
+      return;
     }
+
+    closeMobileAfterClick();
   }
 
   const ideasOpen = activeView === "ideas";
   const competitorOpen = activeView === "competitors";
   const analystOpen = activeView === "analyst";
 
-  return (
-    <aside className="w-[252px] bg-zinc-950 text-white min-h-screen fixed left-0 top-0 border-r border-zinc-800 z-40">
-      <div className="h-16 flex items-center px-6 border-b border-zinc-800">
+  const sidebarContent = (
+    <div className="h-full flex flex-col">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-800">
         <div>
           <h1 className="text-xl font-bold">
             🎬 StudioOS
@@ -377,9 +399,16 @@ export default function Sidebar({
             YouTube command center
           </p>
         </div>
+
+        <button
+          onClick={onCloseMobile}
+          className="lg:hidden w-10 h-10 rounded-2xl border border-zinc-800 flex items-center justify-center text-zinc-300"
+        >
+          <X size={18} />
+        </button>
       </div>
 
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
@@ -525,6 +554,28 @@ export default function Sidebar({
           );
         })}
       </nav>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      <aside className="hidden lg:block w-[252px] bg-zinc-950 text-white min-h-screen fixed left-0 top-0 border-r border-zinc-800 z-40">
+        {sidebarContent}
+      </aside>
+
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <button
+            onClick={onCloseMobile}
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close mobile menu"
+          />
+
+          <aside className="absolute left-0 top-0 bottom-0 w-[86vw] max-w-[330px] bg-zinc-950 text-white shadow-2xl">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

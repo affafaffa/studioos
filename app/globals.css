@@ -176,3 +176,72 @@ body {
 /* STUDIOOS READABILITY HOTFIX END */
 
 
+
+/* StudioOS mobile responsive fixes */
+@media (max-width: 1023px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .studioos-readable {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .studioos-readable h1,
+  .studioos-readable h2 {
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .studioos-readable .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .studioos-readable [class*="grid-cols-"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .studioos-readable [class*="max-w-"] {
+    max-width: 100% !important;
+  }
+
+  .studioos-readable .rounded-3xl {
+    border-radius: 1.25rem;
+  }
+
+  .studioos-readable table {
+    min-width: 720px;
+  }
+
+  .studioos-readable .overflow-auto,
+  .studioos-readable .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 640px) {
+  .studioos-readable {
+    font-size: 14px;
+  }
+
+  .studioos-readable h1 {
+    font-size: 1.75rem !important;
+    line-height: 2.15rem !important;
+  }
+
+  .studioos-readable h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.9rem !important;
+  }
+
+  .studioos-readable h3 {
+    font-size: 1.1rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .studioos-readable p {
+    line-height: 1.55rem;
+  }
+}

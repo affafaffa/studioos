@@ -52,6 +52,8 @@ export default function AppShell({
   const [highlightedIdeaId, setHighlightedIdeaId] =
     useState<number | null>(null);
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   useEffect(() => {
     const savedView = window.localStorage.getItem(
       "studioos-active-view"
@@ -84,28 +86,33 @@ export default function AppShell({
 
     window.localStorage.setItem(
       "studioos-idea-section",
-      "idea-bank"
+      "review-ideas"
     );
 
     window.dispatchEvent(
       new CustomEvent("studioos-idea-section-change", {
         detail: {
-          section: "idea-bank",
+          section: "review-ideas",
         },
       })
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 overflow-x-hidden">
       <Sidebar
         activeView={activeView}
         onChangeView={handleChangeView}
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
       />
 
-      <Topbar activeView={activeView} />
+      <Topbar
+        activeView={activeView}
+        onOpenMobileMenu={() => setMobileSidebarOpen(true)}
+      />
 
-      <main className="ml-[252px] pt-16">
+      <main className="pt-16 lg:ml-[252px] min-w-0">
         <Dashboard
           ideas={ideas}
           videos={videos}
