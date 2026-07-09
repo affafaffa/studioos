@@ -9,6 +9,9 @@ import type {
   CompetitorVideo,
 } from "@/types/competitor";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function Home() {
   const [
     ideasResult,

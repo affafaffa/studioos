@@ -42,6 +42,45 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function extractVideoIdFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+
+  const text = url.trim();
+
+  const patterns = [
+    /watch\?v=([a-zA-Z0-9_-]+)/,
+    /youtu\.be\/([a-zA-Z0-9_-]+)/,
+    /shorts\/([a-zA-Z0-9_-]+)/,
+    /embed\/([a-zA-Z0-9_-]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return "";
+}
+
+function buildYoutubeThumbnailUrl(videoId: string) {
+  if (!videoId) return "";
+
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+function getRemixThumbnail(remix: CompetitorRemix) {
+  if (remix.source_thumbnail_url) {
+    return remix.source_thumbnail_url;
+  }
+
+  const videoId = extractVideoIdFromUrl(remix.source_video_url);
+
+  return buildYoutubeThumbnailUrl(videoId);
+}
+
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -409,134 +448,144 @@ export default function CompetitorRemixLab({
             </thead>
 
             <tbody>
-              {sortedRemixes.map((remix) => (
-                <tr
-                  key={remix.id}
-                  className="border-t hover:bg-gray-50"
-                >
-                  <td className="p-4">
-                    {remix.source_thumbnail_url ? (
-                      <img
-                        src={remix.source_thumbnail_url}
-                        alt={remix.source_title || "Source thumbnail"}
-                        className="w-44 aspect-video object-cover rounded-xl border bg-gray-100"
-                      />
-                    ) : (
-                      <div className="w-44 aspect-video rounded-xl border bg-gray-50 flex items-center justify-center text-gray-400">
-                        <ImageIcon size={24} />
+              {sortedRemixes.map((remix) => {
+                const thumbnail = getRemixThumbnail(remix);
+
+                return (
+                  <tr
+                    key={remix.id}
+                    className="border-t hover:bg-gray-50"
+                  >
+                    <td className="p-4">
+                      {thumbnail ? (
+                        <img
+                          src={thumbnail}
+                          alt={remix.source_title || "Source thumbnail"}
+                          className="w-44 aspect-video object-cover rounded-xl border bg-gray-100"
+                        />
+                      ) : (
+                        <div className="w-44 aspect-video rounded-xl border bg-gray-50 flex items-center justify-center text-gray-400">
+                          <ImageIcon size={24} />
+                        </div>
+                      )}
+
+                      <div className="text-xs text-gray-500 mt-2">
+                        {formatNumber(remix.source_view_count)} source views
                       </div>
-                    )}
 
-                    <div className="text-xs text-gray-500 mt-2">
-                      {formatNumber(remix.source_view_count)} source views
-                    </div>
-                  </td>
+                      {remix.source_published_at && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          Published: {formatDate(remix.source_published_at)}
+                        </div>
+                      )}
+                    </td>
 
-                  <td className="p-4">
-                    <div className="flex items-start gap-2">
-                      <Lightbulb
-                        size={18}
-                        className="text-purple-600 mt-0.5"
-                      />
+                    <td className="p-4">
+                      <div className="flex items-start gap-2">
+                        <Lightbulb
+                          size={18}
+                          className="text-purple-600 mt-0.5"
+                        />
 
-                      <div>
-                        <p className="font-bold">
-                          {remix.remixed_title}
-                        </p>
-
-                        <p className="text-xs text-gray-400 mt-1">
-                          Remix ID #{remix.id} · Saved Idea #{remix.saved_idea_id || "-"}
-                        </p>
-
-                        <p className="text-xs text-gray-500 mt-2">
-                          Source: {remix.source_title || "-"}
-                        </p>
-
-                        {remix.hook && (
-                          <p className="text-xs text-gray-500 mt-2">
-                            Hook: {remix.hook}
+                        <div>
+                          <p className="font-bold">
+                            {remix.remixed_title}
                           </p>
-                        )}
 
-                        <div className="flex gap-3 mt-3">
-                          <CopyButton
-                            value={remix.remixed_title}
-                            label="Copy title"
-                          />
+                          <p className="text-xs text-gray-400 mt-1">
+                            Remix ID #{remix.id} · Saved Idea #{remix.saved_idea_id || "-"}
+                          </p>
 
-                          {remix.thumbnail_prompt && (
-                            <CopyButton
-                              value={remix.thumbnail_prompt}
-                              label="Copy thumbnail prompt"
-                            />
+                          <p className="text-xs text-gray-500 mt-2">
+                            Source: {remix.source_title || "-"}
+                          </p>
+
+                          {remix.hook && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Hook: {remix.hook}
+                            </p>
                           )}
+
+                          <div className="flex gap-3 mt-3">
+                            <CopyButton
+                              value={remix.remixed_title}
+                              label="Copy title"
+                            />
+
+                            {remix.thumbnail_prompt && (
+                              <CopyButton
+                                value={remix.thumbnail_prompt}
+                                label="Copy thumbnail prompt"
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="p-4">
-                    {remix.source_group || "-"}
-                  </td>
+                    <td className="p-4">
+                      {remix.source_group || "-"}
+                    </td>
 
-                  <td className="p-4">
-                    {remix.source_channel || "-"}
-                  </td>
+                    <td className="p-4">
+                      {remix.source_channel || "-"}
+                    </td>
 
-                  <td className="p-4">
-                    <span className="px-3 py-1 rounded-full bg-zinc-100 text-zinc-700">
-                      {remix.theme || "-"}
-                    </span>
-                  </td>
+                    <td className="p-4">
+                      <span className="px-3 py-1 rounded-full bg-zinc-100 text-zinc-700">
+                        {remix.theme || "-"}
+                      </span>
+                    </td>
 
-                  <td className="p-4 font-semibold">
-                    {Number(remix.score || 0)}
-                  </td>
+                    <td className="p-4 font-semibold">
+                      {Number(remix.score || 0)}
+                    </td>
 
-                  <td className="p-4 text-gray-600">
-                    {formatDate(remix.created_at)}
-                  </td>
+                    <td className="p-4 text-gray-600">
+                      {formatDate(remix.created_at)}
+                    </td>
 
-                  <td className="p-4">
-                    <div className="flex flex-wrap items-center gap-4">
-                      {remix.saved_idea_id && (
+                    <td className="p-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        {remix.saved_idea_id && (
+                          <button
+                            onClick={() =>
+                              onOpenIdea?.(Number(remix.saved_idea_id))
+                            }
+                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                          >
+                            <Lightbulb size={16} />
+                            Open Idea
+                          </button>
+                        )}
+
+                        {remix.source_video_url && (
+                          <a
+                            href={remix.source_video_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
+                          >
+                            <ExternalLink size={16} />
+                            Source
+                          </a>
+                        )}
+
                         <button
-                          onClick={() =>
-                            onOpenIdea?.(Number(remix.saved_idea_id))
-                          }
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                          onClick={() => handleDelete(remix)}
+                          disabled={deleteLoadingId === remix.id}
+                          className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 disabled:opacity-50"
                         >
-                          <Lightbulb size={16} />
-                          Open Idea
+                          <Trash2 size={16} />
+                          {deleteLoadingId === remix.id
+                            ? "Deleting..."
+                            : "Delete Log"}
                         </button>
-                      )}
-
-                      {remix.source_video_url && (
-                        <a
-                          href={remix.source_video_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
-                        >
-                          <ExternalLink size={16} />
-                          Source
-                        </a>
-                      )}
-
-                      <button
-                        onClick={() => handleDelete(remix)}
-                        disabled={deleteLoadingId === remix.id}
-                        className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 disabled:opacity-50"
-                      >
-                        <Trash2 size={16} />
-                        {deleteLoadingId === remix.id
-                          ? "Deleting..."
-                          : "Delete Log"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {sortedRemixes.length === 0 && (
                 <tr>
