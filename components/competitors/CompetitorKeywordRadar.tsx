@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
+  Copy,
   ExternalLink,
   Flame,
   ImageIcon,
@@ -10,6 +11,7 @@ import {
   Search,
   Sparkles,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -18,24 +20,42 @@ type CompetitorKeyword = {
   keyword: string;
   keyword_slug: string;
   category: string | null;
+
   video_count: number | null;
   channel_count: number | null;
   group_count: number | null;
+
   total_views: number | null;
   avg_views: number | null;
   max_views: number | null;
   total_views_per_day: number | null;
+
   latest_published_at: string | null;
   first_seen_at: string | null;
   last_seen_at: string | null;
+
   trend_score: number | null;
   traffic_score: number | null;
   velocity_score: number | null;
   opportunity_score: number | null;
+
+  growth_score: number | null;
+  breakout_score: number | null;
+  adoption_score: number | null;
+  phrase_quality_score: number | null;
+
+  previous_total_views: number | null;
+  views_growth: number | null;
+  growth_rate: number | null;
+
+  discovery_reason: string | null;
+  market_stage: string | null;
+
   keyword_rank: number | null;
   external_google_volume: number | null;
   external_youtube_volume: number | null;
   external_trend_score: number | null;
+
   source: string | null;
   last_refreshed_at: string | null;
   created_at: string;
@@ -46,19 +66,25 @@ type KeywordVideoMatch = {
   id: number;
   keyword_id: number | null;
   competitor_video_id: number | null;
+
   keyword: string;
   keyword_slug: string;
+
   video_title: string | null;
   video_url: string | null;
   thumbnail_url: string | null;
   channel_title: string | null;
+
   competitor_channel_id: number | null;
   group_id: number | null;
+
   published_at: string | null;
+
   view_count: number | null;
   like_count: number | null;
   comment_count: number | null;
   views_per_day: number | null;
+
   match_source: string | null;
   created_at: string;
 };
@@ -66,16 +92,23 @@ type KeywordVideoMatch = {
 type SortKey =
   | "rank"
   | "trend_score"
+  | "opportunity_score"
+  | "breakout_score"
+  | "growth_score"
+  | "adoption_score"
   | "total_views"
   | "views_per_day"
   | "video_count"
-  | "opportunity_score"
   | "latest";
 
 const PAGE_SIZE = 20;
 
 function formatNumber(value: number | null | undefined) {
   return Number(value || 0).toLocaleString("en-US");
+}
+
+function formatPercent(value: number | null | undefined) {
+  return `${(Number(value || 0) * 100).toFixed(1)}%`;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -127,8 +160,38 @@ function getRankTier(rank: number | null | undefined) {
   };
 }
 
+function getStageStyle(stage: string | null | undefined) {
+  const text = stage || "Watch";
+
+  if (text === "Single-Channel Breakout") {
+    return "bg-red-100 text-red-700 border-red-200";
+  }
+
+  if (text === "Accelerating") {
+    return "bg-orange-100 text-orange-700 border-orange-200";
+  }
+
+  if (text === "Cross-Channel Adoption") {
+    return "bg-blue-100 text-blue-700 border-blue-200";
+  }
+
+  if (text === "Rising") {
+    return "bg-purple-100 text-purple-700 border-purple-200";
+  }
+
+  return "bg-zinc-100 text-zinc-700 border-zinc-200";
+}
+
 function getCategoryStyle(category: string | null) {
-  const text = category || "SEO Phrase";
+  const text = category || "Discovered Phrase";
+
+  if (text.includes("Fandom")) {
+    return "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200";
+  }
+
+  if (text.includes("Secret")) {
+    return "bg-indigo-100 text-indigo-700 border-indigo-200";
+  }
 
   if (text.includes("Contrast")) {
     return "bg-pink-100 text-pink-700 border-pink-200";
@@ -136,14 +199,6 @@ function getCategoryStyle(category: string | null) {
 
   if (text.includes("Transformation")) {
     return "bg-purple-100 text-purple-700 border-purple-200";
-  }
-
-  if (text.includes("Status")) {
-    return "bg-amber-100 text-amber-700 border-amber-200";
-  }
-
-  if (text.includes("Theme")) {
-    return "bg-blue-100 text-blue-700 border-blue-200";
   }
 
   if (text.includes("Challenge")) {
@@ -155,6 +210,56 @@ function getCategoryStyle(category: string | null) {
   }
 
   return "bg-zinc-100 text-zinc-700 border-zinc-200";
+}
+
+function getResearchDecision(keyword: CompetitorKeyword) {
+  const breakout = Number(keyword.breakout_score || 0);
+  const growth = Number(keyword.growth_score || 0);
+  const adoption = Number(keyword.adoption_score || 0);
+  const opportunity = Number(keyword.opportunity_score || 0);
+  const stage = keyword.market_stage || "Watch";
+
+  if (
+    stage === "Single-Channel Breakout" ||
+    breakout >= 80 ||
+    opportunity >= 85
+  ) {
+    return {
+      label: "Use Now",
+      description:
+        "High breakout or opportunity signal. Good candidate for immediate idea testing.",
+      className: "bg-red-100 text-red-700 border-red-200",
+    };
+  }
+
+  if (
+    stage === "Accelerating" ||
+    growth >= 70 ||
+    adoption >= 70
+  ) {
+    return {
+      label: "Build Around",
+      description:
+        "The phrase is gaining traffic or adoption. Use it as a core theme in a new remix.",
+      className: "bg-orange-100 text-orange-700 border-orange-200",
+    };
+  }
+
+  if (stage === "Cross-Channel Adoption" || adoption >= 55) {
+    return {
+      label: "Validate",
+      description:
+        "Multiple channels are using this phrase. Check saturation before making a new angle.",
+      className: "bg-blue-100 text-blue-700 border-blue-200",
+    };
+  }
+
+  return {
+    label: "Monitor",
+    description:
+      "Interesting but not strong enough yet. Keep it in radar and watch next refresh.",
+    className: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  };
 }
 
 function ScoreBar({
@@ -183,6 +288,29 @@ function ScoreBar({
   );
 }
 
+function CopyKeywordButton({ keyword }: { keyword: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(keyword);
+    setCopied(true);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 1200);
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-black"
+    >
+      <Copy size={13} />
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 export default function CompetitorKeywordRadar() {
   const [keywords, setKeywords] = useState<CompetitorKeyword[]>([]);
   const [matches, setMatches] = useState<KeywordVideoMatch[]>([]);
@@ -192,6 +320,7 @@ export default function CompetitorKeywordRadar() {
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [stageFilter, setStageFilter] = useState("All");
   const [topLimit, setTopLimit] = useState("20");
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [currentPage, setCurrentPage] = useState(1);
@@ -248,7 +377,7 @@ export default function CompetitorKeywordRadar() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, categoryFilter, topLimit, sortKey]);
+  }, [search, categoryFilter, stageFilter, topLimit, sortKey]);
 
   async function handleRefreshKeywords() {
     setRefreshing(true);
@@ -295,6 +424,19 @@ export default function CompetitorKeywordRadar() {
     ];
   }, [keywords]);
 
+  const stages = useMemo(() => {
+    return [
+      "All",
+      ...Array.from(
+        new Set(
+          keywords
+            .map((keyword) => keyword.market_stage)
+            .filter((item): item is string => Boolean(item))
+        )
+      ),
+    ];
+  }, [keywords]);
+
   const filteredKeywords = keywords.filter((keyword) => {
     const keywordText = keyword.keyword.toLowerCase();
     const query = search.trim().toLowerCase();
@@ -304,7 +446,10 @@ export default function CompetitorKeywordRadar() {
     const matchesCategory =
       categoryFilter === "All" || keyword.category === categoryFilter;
 
-    return matchesSearch && matchesCategory;
+    const matchesStage =
+      stageFilter === "All" || keyword.market_stage === stageFilter;
+
+    return matchesSearch && matchesCategory && matchesStage;
   });
 
   const sortedKeywords = [...filteredKeywords].sort((a, b) => {
@@ -314,6 +459,34 @@ export default function CompetitorKeywordRadar() {
 
     if (sortKey === "trend_score") {
       return Number(b.trend_score || 0) - Number(a.trend_score || 0);
+    }
+
+    if (sortKey === "opportunity_score") {
+      return (
+        Number(b.opportunity_score || 0) -
+        Number(a.opportunity_score || 0)
+      );
+    }
+
+    if (sortKey === "breakout_score") {
+      return (
+        Number(b.breakout_score || 0) -
+        Number(a.breakout_score || 0)
+      );
+    }
+
+    if (sortKey === "growth_score") {
+      return (
+        Number(b.growth_score || 0) -
+        Number(a.growth_score || 0)
+      );
+    }
+
+    if (sortKey === "adoption_score") {
+      return (
+        Number(b.adoption_score || 0) -
+        Number(a.adoption_score || 0)
+      );
     }
 
     if (sortKey === "total_views") {
@@ -329,13 +502,6 @@ export default function CompetitorKeywordRadar() {
 
     if (sortKey === "video_count") {
       return Number(b.video_count || 0) - Number(a.video_count || 0);
-    }
-
-    if (sortKey === "opportunity_score") {
-      return (
-        Number(b.opportunity_score || 0) -
-        Number(a.opportunity_score || 0)
-      );
     }
 
     if (sortKey === "latest") {
@@ -381,6 +547,18 @@ export default function CompetitorKeywordRadar() {
     0
   );
 
+  const breakoutCount = keywords.filter(
+    (keyword) => keyword.market_stage === "Single-Channel Breakout"
+  ).length;
+
+  const acceleratingCount = keywords.filter(
+    (keyword) => keyword.market_stage === "Accelerating"
+  ).length;
+
+  const adoptionCount = keywords.filter(
+    (keyword) => keyword.market_stage === "Cross-Channel Adoption"
+  ).length;
+
   const topKeyword = [...keywords].sort(
     (a, b) => Number(b.trend_score || 0) - Number(a.trend_score || 0)
   )[0];
@@ -392,6 +570,10 @@ export default function CompetitorKeywordRadar() {
       .sort()
       .reverse()[0] || null;
 
+  const selectedDecision = selectedKeyword
+    ? getResearchDecision(selectedKeyword)
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl bg-zinc-950 text-white p-7 shadow">
@@ -399,7 +581,7 @@ export default function CompetitorKeywordRadar() {
           <div>
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm">
               <Sparkles size={16} />
-              Smart SEO Research
+              Dynamic Keyword Discovery
             </div>
 
             <h2 className="text-3xl font-bold mt-4">
@@ -407,7 +589,7 @@ export default function CompetitorKeywordRadar() {
             </h2>
 
             <p className="text-zinc-300 mt-2 max-w-3xl">
-              Find rising keyword clusters from competitor videos. Generic single-word tags are filtered out. Prioritize SEO phrases, theme clusters, contrast combos and transformation hooks.
+              Detect market phrases from competitor titles, descriptions and tags. Rank them by traffic velocity, growth, breakout signals and cross-channel adoption.
             </p>
           </div>
 
@@ -424,25 +606,32 @@ export default function CompetitorKeywordRadar() {
           </button>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mt-7">
+        <div className="grid grid-cols-5 gap-4 mt-7">
           <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
-            <p className="text-sm text-zinc-300">SEO Clusters</p>
+            <p className="text-sm text-zinc-300">Market Phrases</p>
             <p className="text-3xl font-bold mt-2">
               {formatNumber(keywords.length)}
             </p>
           </div>
 
           <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
-            <p className="text-sm text-zinc-300">Internal Traffic</p>
+            <p className="text-sm text-zinc-300">Breakouts</p>
             <p className="text-3xl font-bold mt-2">
-              {formatNumber(totalInternalViews)}
+              {formatNumber(breakoutCount)}
             </p>
           </div>
 
           <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
-            <p className="text-sm text-zinc-300">Top Keyword</p>
-            <p className="text-2xl font-bold mt-2 truncate">
-              {topKeyword?.keyword || "-"}
+            <p className="text-sm text-zinc-300">Accelerating</p>
+            <p className="text-3xl font-bold mt-2">
+              {formatNumber(acceleratingCount)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
+            <p className="text-sm text-zinc-300">Adoption</p>
+            <p className="text-3xl font-bold mt-2">
+              {formatNumber(adoptionCount)}
             </p>
           </div>
 
@@ -453,6 +642,17 @@ export default function CompetitorKeywordRadar() {
             </p>
           </div>
         </div>
+
+        <div className="mt-5 text-sm text-zinc-400">
+          Top keyword now:{" "}
+          <span className="text-white font-semibold">
+            {topKeyword?.keyword || "-"}
+          </span>{" "}
+          · Internal traffic:{" "}
+          <span className="text-white font-semibold">
+            {formatNumber(totalInternalViews)}
+          </span>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow overflow-hidden">
@@ -461,11 +661,11 @@ export default function CompetitorKeywordRadar() {
             <TrendingUp size={22} className="text-purple-600" />
 
             <h3 className="text-xl font-bold">
-              Ranked Keyword Clusters
+              Ranked Market Phrases
             </h3>
           </div>
 
-          <div className="grid grid-cols-5 gap-3 mt-6">
+          <div className="grid grid-cols-6 gap-3 mt-6">
             <div className="relative">
               <Search
                 size={16}
@@ -475,7 +675,7 @@ export default function CompetitorKeywordRadar() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search keyword clusters..."
+                placeholder="Search market phrases..."
                 className="border rounded-xl pl-9 pr-4 py-2 w-full"
               />
             </div>
@@ -489,6 +689,18 @@ export default function CompetitorKeywordRadar() {
             >
               {categories.map((category) => (
                 <option key={category}>{category}</option>
+              ))}
+            </select>
+
+            <select
+              value={stageFilter}
+              onChange={(event) =>
+                setStageFilter(event.target.value)
+              }
+              className="border rounded-xl px-4 py-2"
+            >
+              {stages.map((stage) => (
+                <option key={stage}>{stage}</option>
               ))}
             </select>
 
@@ -513,10 +725,13 @@ export default function CompetitorKeywordRadar() {
             >
               <option value="rank">Smart Rank</option>
               <option value="trend_score">Trend Score</option>
+              <option value="opportunity_score">Opportunity Score</option>
+              <option value="breakout_score">Breakout Score</option>
+              <option value="growth_score">Growth Score</option>
+              <option value="adoption_score">Adoption Score</option>
               <option value="total_views">Traffic Volume</option>
               <option value="views_per_day">Views/day</option>
               <option value="video_count">Video Count</option>
-              <option value="opportunity_score">Opportunity Score</option>
               <option value="latest">Latest Published</option>
             </select>
 
@@ -524,6 +739,7 @@ export default function CompetitorKeywordRadar() {
               onClick={() => {
                 setSearch("");
                 setCategoryFilter("All");
+                setStageFilter("All");
                 setTopLimit("20");
                 setSortKey("rank");
                 setCurrentPage(1);
@@ -547,19 +763,20 @@ export default function CompetitorKeywordRadar() {
           )}
         </div>
 
-        <div className="grid grid-cols-[1.45fr_1fr]">
+        <div className="grid grid-cols-[1.5fr_1fr]">
           <div className="border-r overflow-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
                   <th className="text-left p-4">Rank</th>
-                  <th className="text-left p-4">Keyword Cluster</th>
+                  <th className="text-left p-4 min-w-64">Phrase</th>
+                  <th className="text-left p-4">Stage</th>
                   <th className="text-left p-4">Type</th>
-                  <th className="text-left p-4">Videos</th>
-                  <th className="text-left p-4">Channels</th>
                   <th className="text-left p-4">Traffic</th>
                   <th className="text-left p-4">Views/day</th>
-                  <th className="text-left p-4">Trend</th>
+                  <th className="text-left p-4">Breakout</th>
+                  <th className="text-left p-4">Growth</th>
+                  <th className="text-left p-4">Adoption</th>
                   <th className="text-left p-4">Opp.</th>
                 </tr>
               </thead>
@@ -568,7 +785,7 @@ export default function CompetitorKeywordRadar() {
                 {loading && (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="p-8 text-center text-gray-500"
                     >
                       Loading keywords...
@@ -583,6 +800,8 @@ export default function CompetitorKeywordRadar() {
 
                     const tier = getRankTier(keyword.keyword_rank);
                     const categoryStyle = getCategoryStyle(keyword.category);
+                    const stageStyle = getStageStyle(keyword.market_stage);
+                    const decision = getResearchDecision(keyword);
 
                     return (
                       <tr
@@ -613,24 +832,33 @@ export default function CompetitorKeywordRadar() {
                           </div>
 
                           <div className="text-xs text-gray-400 mt-1">
-                            Latest: {formatDate(keyword.latest_published_at)}
+                            {formatNumber(keyword.video_count)} videos ·{" "}
+                            {formatNumber(keyword.channel_count)} channels
                           </div>
+
+                          <div className="mt-2">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${decision.className}`}
+                            >
+                              {decision.label}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="p-4">
+                          <span
+                            className={`px-3 py-1 rounded-full border text-xs font-medium ${stageStyle}`}
+                          >
+                            {keyword.market_stage || "Watch"}
+                          </span>
                         </td>
 
                         <td className="p-4">
                           <span
                             className={`px-3 py-1 rounded-full border text-xs font-medium ${categoryStyle}`}
                           >
-                            {keyword.category || "SEO Phrase"}
+                            {keyword.category || "Discovered Phrase"}
                           </span>
-                        </td>
-
-                        <td className="p-4 font-semibold">
-                          {formatNumber(keyword.video_count)}
-                        </td>
-
-                        <td className="p-4">
-                          {formatNumber(keyword.channel_count)}
                         </td>
 
                         <td className="p-4 font-semibold">
@@ -646,7 +874,15 @@ export default function CompetitorKeywordRadar() {
                         </td>
 
                         <td className="p-4 font-semibold">
-                          {Number(keyword.trend_score || 0)}
+                          {Number(keyword.breakout_score || 0)}
+                        </td>
+
+                        <td className="p-4 font-semibold">
+                          {Number(keyword.growth_score || 0)}
+                        </td>
+
+                        <td className="p-4 font-semibold">
+                          {Number(keyword.adoption_score || 0)}
                         </td>
 
                         <td className="p-4 font-semibold">
@@ -659,10 +895,10 @@ export default function CompetitorKeywordRadar() {
                 {!loading && paginatedKeywords.length === 0 && (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="p-8 text-center text-gray-500"
                     >
-                      No keyword clusters yet. Click Refresh Keywords.
+                      No keyword phrases yet. Click Refresh Keywords.
                     </td>
                   </tr>
                 )}
@@ -705,21 +941,37 @@ export default function CompetitorKeywordRadar() {
               <BarChart3 size={20} />
 
               <h3 className="font-bold">
-                Videos Using This Keyword
+                Research Explanation
               </h3>
             </div>
 
-            {selectedKeyword && (
+            {selectedKeyword && selectedDecision && (
               <div className="bg-white rounded-2xl border p-4 mb-4">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase text-gray-500 font-semibold">
-                      Selected Cluster
+                      Selected Phrase
                     </p>
 
                     <p className="text-2xl font-bold mt-1">
                       {selectedKeyword.keyword}
                     </p>
+
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <span
+                        className={`px-3 py-1 rounded-full border text-xs font-medium ${getStageStyle(
+                          selectedKeyword.market_stage
+                        )}`}
+                      >
+                        {selectedKeyword.market_stage || "Watch"}
+                      </span>
+
+                      <span
+                        className={`px-3 py-1 rounded-full border text-xs font-medium ${selectedDecision.className}`}
+                      >
+                        {selectedDecision.label}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -727,13 +979,20 @@ export default function CompetitorKeywordRadar() {
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-500 mt-3">
-                  {formatNumber(selectedKeyword.video_count)} videos ·{" "}
-                  {formatNumber(selectedKeyword.total_views)} views · Trend{" "}
-                  {Number(selectedKeyword.trend_score || 0)}
+                <p className="text-sm text-gray-500 mt-4">
+                  {selectedKeyword.discovery_reason ||
+                    "No discovery reason saved yet. Refresh Keywords again after the new engine is deployed."}
                 </p>
 
-                <div className="space-y-3 mt-4">
+                <p className="text-sm text-gray-500 mt-3">
+                  {selectedDecision.description}
+                </p>
+
+                <div className="mt-4">
+                  <CopyKeywordButton keyword={selectedKeyword.keyword} />
+                </div>
+
+                <div className="space-y-3 mt-5">
                   <ScoreBar
                     label="Traffic"
                     value={Number(selectedKeyword.traffic_score || 0)}
@@ -745,12 +1004,65 @@ export default function CompetitorKeywordRadar() {
                   />
 
                   <ScoreBar
+                    label="Breakout"
+                    value={Number(selectedKeyword.breakout_score || 0)}
+                  />
+
+                  <ScoreBar
+                    label="Growth"
+                    value={Number(selectedKeyword.growth_score || 0)}
+                  />
+
+                  <ScoreBar
+                    label="Adoption"
+                    value={Number(selectedKeyword.adoption_score || 0)}
+                  />
+
+                  <ScoreBar
                     label="Opportunity"
                     value={Number(selectedKeyword.opportunity_score || 0)}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-5 text-sm">
+                  <div className="rounded-xl bg-gray-50 border p-3">
+                    <p className="text-gray-500">Views Growth</p>
+                    <p className="font-bold mt-1">
+                      +{formatNumber(selectedKeyword.views_growth)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-gray-50 border p-3">
+                    <p className="text-gray-500">Growth Rate</p>
+                    <p className="font-bold mt-1">
+                      {formatPercent(selectedKeyword.growth_rate)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-gray-50 border p-3">
+                    <p className="text-gray-500">Videos</p>
+                    <p className="font-bold mt-1">
+                      {formatNumber(selectedKeyword.video_count)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-gray-50 border p-3">
+                    <p className="text-gray-500">Channels</p>
+                    <p className="font-bold mt-1">
+                      {formatNumber(selectedKeyword.channel_count)}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
+
+            <div className="flex items-center gap-2 mb-4">
+              <Zap size={18} />
+
+              <h3 className="font-bold">
+                Videos Using This Phrase
+              </h3>
+            </div>
 
             <div className="space-y-4 max-h-[720px] overflow-auto pr-1">
               {selectedMatches.map((match) => (
@@ -801,7 +1113,7 @@ export default function CompetitorKeywordRadar() {
 
               {selectedMatches.length === 0 && (
                 <div className="bg-white rounded-2xl border p-6 text-sm text-gray-500">
-                  Select a keyword cluster to see which videos and channels use it.
+                  Select a keyword phrase to see which videos and channels use it.
                 </div>
               )}
             </div>
