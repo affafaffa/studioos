@@ -88,13 +88,20 @@ const urlNoiseWords = new Set([
   "com",
   "net",
   "org",
+  "co",
+  "io",
+  "app",
+  "tv",
+  "me",
+  "vn",
   "youtube",
-  "youtu",
   "youtubecom",
+  "youtu",
   "youtu.be",
   "watch",
   "playlist",
   "playlists",
+  "list",
   "shorts",
   "subscribe",
   "subscribed",
@@ -143,7 +150,12 @@ const bannedBadPhrases = [
   "school https www youtube com",
   "school https www youtube com playlist",
   "de la school",
+  "sobre la school",
+  "la school",
   "school youtube",
+  "school www",
+  "school com",
+  "school se lev",
   "playlist list",
   "watch v",
   "share subscribe",
@@ -164,6 +176,8 @@ const bannedBadPhrases = [
   "enemigo hermano",
   "chico vs chica",
   "boy vs girl",
+  "kid vs kid",
+  "sibling vs sibling",
 ];
 
 const stopWords = new Set([
@@ -206,7 +220,6 @@ const stopWords = new Set([
   "video",
   "official",
   "channel",
-
   "el",
   "la",
   "los",
@@ -263,6 +276,7 @@ const weakWords = new Set([
   "school",
   "brother",
   "sister",
+  "sibling",
   "hermano",
   "hermana",
   "chico",
@@ -280,6 +294,7 @@ const strongSignalWords = [
   "trash",
   "diamond",
   "broken",
+  "broke",
   "makeover",
   "transformation",
   "glow",
@@ -304,7 +319,8 @@ const strongSignalWords = [
   "beauty",
   "arabic",
   "spanish",
-  "24 hours",
+  "24",
+  "hours",
 ];
 
 const themeWords = [
@@ -341,7 +357,7 @@ const actionWords = [
 ];
 
 const phraseProtectionPatterns = [
-  /(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/g,
+  /(?:poor|rich|giga rich|broke|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|broke|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/g,
   /(?:kpop|k pop|k-pop)\s+demon\s+hunters/g,
   /demon\s+hunters/g,
   /huntrix(?:\s+[a-z0-9]+){0,3}/g,
@@ -349,7 +365,7 @@ const phraseProtectionPatterns = [
   /secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)(?:\s+challenge)?/g,
   /(?:princess|mermaid|vampire|baby doll|huntrix|kpop demon hunters)\s+(?:makeover|transformation|challenge|contest|party|secret party|dance contest|beauty contest|fashion show)/g,
   /(?:arabic|spanish|hindi|korean|english|portuguese|french)\s+(?:baby doll|princess|mermaid|vampire)/g,
-  /(?:food|school|secret room)\s+challenge\s+24\s+hours/g,
+  /(?:food|secret room)\s+challenge\s+24\s+hours/g,
 ];
 
 function stripUrls(value: string) {
@@ -412,9 +428,10 @@ function canonicalizeForeignText(value: string) {
     .replace(/\bdorado\b|\bdorada\b/g, " gold ")
     .replace(/\bdiamante\b/g, " diamond ")
     .replace(/\broto\b|\brota\b/g, " broken ")
+    .replace(/\bbroke\b/g, " poor ")
 
     .replace(/\bhermano\b|\bhermana\b|\bhermanos\b|\bhermanas\b/g, " sibling ")
-    .replace(/\benchigo\b|\benemiga\b|\benemigo\b|\benemigos\b|\benemigas\b/g, " enemy ")
+    .replace(/\benemiga\b|\benemigo\b|\benemigos\b|\benemigas\b/g, " enemy ")
     .replace(/\bchico\b|\bchica\b|\bchicos\b|\bchicas\b/g, " kid ");
 
   return text;
@@ -484,9 +501,17 @@ function hasBrandNoise(value: string) {
 }
 
 function hasUrlNoise(value: string) {
-  const words = normalizeForSearch(value).split(" ");
+  const keyword = normalizeForSearch(value);
+  const words = keyword.split(" ");
 
-  return words.some((word) => urlNoiseWords.has(word));
+  return (
+    words.some((word) => urlNoiseWords.has(word)) ||
+    keyword.includes("youtube") ||
+    keyword.includes("playlist") ||
+    keyword.includes("https") ||
+    keyword.includes("www") ||
+    keyword.includes(" com")
+  );
 }
 
 function hasBadPhraseShape(value: string) {
@@ -495,6 +520,31 @@ function hasBadPhraseShape(value: string) {
   if (!keyword) return true;
   if (hasBrandNoise(keyword)) return true;
   if (hasUrlNoise(keyword)) return true;
+
+  if (
+    keyword.includes("sibling") ||
+    keyword.includes("enemy") ||
+    keyword.includes("kid vs") ||
+    keyword.includes("brother") ||
+    keyword.includes("sister") ||
+    keyword.includes("hermano") ||
+    keyword.includes("hermana") ||
+    keyword.includes("chico") ||
+    keyword.includes("chica")
+  ) {
+    return true;
+  }
+
+  if (keyword.includes("school")) {
+    const validSchool =
+      keyword.includes("school makeover") ||
+      keyword.includes("secret school") ||
+      keyword.includes("school challenge 24 hours");
+
+    if (!validSchool) {
+      return true;
+    }
+  }
 
   return bannedBadPhrases.some((phrase) => keyword.includes(phrase));
 }
@@ -590,7 +640,16 @@ function isMarketPhrase(value: string) {
   if (hasTheme(keyword) && hasAction(keyword)) return true;
   if (hasLocale && hasTheme(keyword)) return true;
 
-  if (words.length >= 3 && hasStrongSignal(keyword)) return true;
+  if (
+    keyword.includes("food challenge 24 hours") ||
+    keyword.includes("challenge 24 hours")
+  ) {
+    return true;
+  }
+
+  if (words.length >= 3 && hasStrongSignal(keyword) && hasAction(keyword)) {
+    return true;
+  }
 
   return false;
 }
@@ -771,7 +830,7 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "translated_protected_phrase",
+      "english_normalized_protected_phrase",
       2.3
     );
   });
@@ -781,7 +840,7 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "translated_title_segment",
+      "english_normalized_title_segment",
       2
     );
   });
@@ -791,7 +850,7 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "translated_ngram_title_tags",
+      "english_normalized_ngram_title_tags",
       1.7
     );
   });
@@ -801,7 +860,7 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "translated_youtube_tag",
+      "english_normalized_youtube_tag",
       1.45
     );
   });
@@ -812,8 +871,8 @@ function extractCandidates(video: CompetitorVideo) {
         candidates,
         phrase,
         detectCategory(phrase),
-        "translated_description_phrase",
-        0.85
+        "english_normalized_description_phrase",
+        0.75
       );
     }
   );
@@ -983,7 +1042,6 @@ function calculateScores({
   );
 
   const usageScore = normalizedLog(videoCount, benchmarks.maxVideoCount);
-
   const spreadScore = normalizedLog(channelCount, benchmarks.maxChannelCount);
 
   const adoptionScore = Math.min(
@@ -1091,28 +1149,28 @@ function getDiscoveryReason({
   viewsGrowth: number;
 }) {
   if (marketStage === "Single-Channel Breakout") {
-    return `English-normalized phrase from title/description/tags. High velocity from breakout source: ${Math.round(
+    return `Clean English market phrase. High velocity from breakout source: ${Math.round(
       viewsPerDay
     ).toLocaleString("en-US")} views/day.`;
   }
 
   if (marketStage === "Accelerating") {
-    return `English-normalized phrase. Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
+    return `Clean English market phrase. Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
       "en-US"
     )} views.`;
   }
 
   if (marketStage === "Cross-Channel Adoption") {
-    return `English-normalized phrase adopted across ${channelCount} channels and ${videoCount} videos.`;
+    return `Clean English market phrase adopted across ${channelCount} channels and ${videoCount} videos.`;
   }
 
   if (marketStage === "Rising") {
-    return `English-normalized phrase with ${totalViews.toLocaleString(
+    return `Clean English market phrase with ${totalViews.toLocaleString(
       "en-US"
     )} internal competitor views.`;
   }
 
-  return "English-normalized watchlist phrase from competitor title, description or tags.";
+  return "Clean English watchlist phrase from competitor title, description or tags.";
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -1408,7 +1466,7 @@ export async function POST() {
 
         market_stage: marketStage,
         keyword_rank: index + 1,
-        source: "multilingual_english_normalized_keyword_engine_v7",
+        source: "keyword_firewall_v8_clean_english_phrases",
         last_refreshed_at: new Date().toISOString(),
       };
     });
@@ -1521,7 +1579,7 @@ export async function POST() {
       keywordCount: keywordRows.length,
       matchCount: matchRows.length,
       videoCount: safeVideos.length,
-      message: `Multilingual Keyword Radar refreshed ${keywordRows.length} English-normalized market phrases from ${safeVideos.length} competitor videos. URL noise and foreign title fragments were filtered.`,
+      message: `Keyword Firewall V8 refreshed ${keywordRows.length} clean English market phrases from ${safeVideos.length} competitor videos. URL, playlist, school-link, and foreign fragment noise were filtered.`,
     });
   } catch (error) {
     const message =
