@@ -36,6 +36,7 @@ type KeywordAggregate = {
   groupIds: Set<number>;
   totalViews: number;
   maxViews: number;
+  maxVideoViewsPerDay: number;
   totalViewsPerDay: number;
   latestPublishedAt: string | null;
   firstSeenAt: string | null;
@@ -44,11 +45,25 @@ type KeywordAggregate = {
   matches: KeywordMatch[];
 };
 
+type KeywordHistoryRow = {
+  keyword_slug: string;
+  keyword: string;
+  total_views: number | null;
+  total_views_per_day: number | null;
+  video_count: number | null;
+  channel_count: number | null;
+  trend_score: number | null;
+  opportunity_score: number | null;
+  captured_at: string;
+};
+
 type ScoreBenchmarks = {
   maxTotalViews: number;
   maxViewsPerDay: number;
+  maxSingleVideoViewsPerDay: number;
   maxVideoCount: number;
   maxChannelCount: number;
+  maxGrowthPerDay: number;
 };
 
 const bannedBrandPhrases = [
@@ -90,30 +105,6 @@ const bannedStandaloneKeywords = new Set([
   "giga rich",
 ]);
 
-const weakWords = new Set([
-  "story",
-  "stories",
-  "visual",
-  "animation",
-  "cartoon",
-  "comedy",
-  "movie",
-  "recap",
-  "contrast",
-  "official",
-  "channel",
-  "girl",
-  "boy",
-  "girls",
-  "boys",
-  "video",
-  "episode",
-  "funny",
-  "kids",
-  "new",
-  "full",
-]);
-
 const stopWords = new Set([
   "the",
   "a",
@@ -148,7 +139,12 @@ const stopWords = new Set([
   "where",
   "why",
   "how",
-
+  "new",
+  "full",
+  "episode",
+  "video",
+  "official",
+  "channel",
   "el",
   "la",
   "los",
@@ -180,126 +176,73 @@ const stopWords = new Set([
   "donde",
 ]);
 
-const trendEntityPhrases = [
-  "kpop demon hunters",
-  "k pop demon hunters",
-  "k-pop demon hunters",
+const weakWords = new Set([
+  "story",
+  "stories",
+  "visual",
+  "animation",
+  "cartoon",
+  "comedy",
+  "movie",
+  "recap",
+  "contrast",
+  "official",
+  "channel",
+  "girl",
+  "boy",
+  "girls",
+  "boys",
+  "video",
+  "episode",
+  "funny",
+  "kids",
+  "new",
+  "full",
+]);
+
+const strongSignalWords = [
+  "vs",
+  "rich",
+  "poor",
+  "giga",
+  "gold",
+  "trash",
+  "diamond",
+  "broken",
+  "makeover",
+  "transformation",
+  "glow",
+  "challenge",
+  "contest",
+  "battle",
+  "secret",
+  "room",
+  "build",
+  "built",
+  "kpop",
+  "demon",
+  "hunters",
   "huntrix",
-  "demon hunters",
-  "saja boys",
-];
-
-const exactMarketPhrases = [
-  "poor vs rich",
-  "rich vs poor",
-  "poor vs rich vs giga rich",
-  "rich vs poor vs giga rich",
-  "giga rich",
-  "rich vs poor baby doll",
-  "poor vs rich baby doll",
-  "poor vs rich vs giga rich baby doll",
-  "rich vs poor vs giga rich baby doll",
-  "giga rich baby doll",
-
-  "kpop demon hunters",
-  "k pop demon hunters",
-  "k-pop demon hunters",
-  "huntrix",
-  "demon hunters",
-  "huntrix transformation",
-  "huntrix makeover",
-  "huntrix party",
-
-  "princess makeover",
-  "princess transformation",
-  "princess challenge",
-  "rainbow princess",
-  "magic princess",
-  "gold princess",
-
-  "mermaid challenge",
-  "mermaid makeover",
-  "mermaid transformation",
-  "poor mermaid transformation",
-  "rich vs poor mermaid",
-
-  "vampire secret party",
-  "vampire transformation",
-  "vampire makeover",
-  "vampire party",
-  "vampire princess",
-
-  "baby doll makeover",
-  "baby doll transformation",
-  "baby doll dance contest",
-  "baby doll beauty contest",
-  "baby doll fashion show",
-  "baby doll challenge",
-  "baby doll contest",
-  "arabic baby doll",
-  "spanish baby doll",
-
-  "we build a secret room",
-  "we built a secret room",
-  "build a secret room",
-  "built a secret room",
-  "secret room challenge",
-  "secret room",
-  "secret base",
-  "secret house",
-  "secret door",
-  "secret party",
-  "secret school",
-
-  "school makeover",
-  "dance contest",
-  "beauty contest",
-  "fashion show",
-];
-
-const themes = [
-  "baby doll",
   "princess",
   "mermaid",
   "vampire",
-  "demon",
-  "angel",
-  "huntrix",
-  "kpop demon hunters",
-  "demon hunters",
-  "queen",
-  "fairy",
-  "witch",
-  "zombie",
+  "baby",
+  "doll",
   "school",
-];
-
-const actions = [
-  "makeover",
-  "transformation",
-  "glow up",
-  "challenge",
-  "contest",
-  "dance contest",
-  "beauty contest",
-  "fashion show",
-  "secret party",
-  "secret room",
   "party",
-  "wedding",
-  "battle",
+  "fashion",
+  "beauty",
+  "arabic",
+  "spanish",
 ];
 
-const statusChains = [
-  "poor vs rich vs giga rich",
-  "rich vs poor vs giga rich",
-  "poor vs rich",
-  "rich vs poor",
-  "good vs bad",
-  "angel vs demon",
-  "gold vs trash",
-  "gold vs silver",
-  "diamond vs broken",
+const phraseProtectionPatterns = [
+  /(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/g,
+  /(?:kpop|k pop|k-pop)\s+demon\s+hunters/g,
+  /demon\s+hunters/g,
+  /huntrix(?:\s+[a-z0-9]+){0,3}/g,
+  /(?:we\s+)?(?:build|built|make|made|create|created)\s+(?:a\s+)?secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)/g,
+  /secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)(?:\s+challenge)?/g,
 ];
 
 function canonicalizeText(value: string) {
@@ -386,6 +329,12 @@ function hasBrandNoise(value: string) {
   return bannedBrandPhrases.some((phrase) => text.includes(phrase));
 }
 
+function hasStrongSignal(value: string) {
+  const text = normalizeForSearch(value);
+
+  return strongSignalWords.some((word) => text.includes(word));
+}
+
 function isWeakStandalone(value: string) {
   const keyword = normalizeForSearch(value);
   const words = keyword.split(" ").filter(Boolean);
@@ -393,7 +342,7 @@ function isWeakStandalone(value: string) {
   if (bannedStandaloneKeywords.has(keyword)) return true;
 
   if (words.length === 1) {
-    return !trendEntityPhrases.includes(keyword);
+    return !["huntrix"].includes(keyword);
   }
 
   const meaningfulWords = words.filter(
@@ -403,45 +352,92 @@ function isWeakStandalone(value: string) {
   return meaningfulWords.length === 0;
 }
 
+function hasBadPhraseShape(value: string) {
+  const keyword = normalizeForSearch(value);
+
+  if (!keyword) return true;
+  if (hasBrandNoise(keyword)) return true;
+  if (keyword.includes("visual story")) return true;
+  if (keyword.includes("story tim")) return true;
+  if (keyword.includes("story multi")) return true;
+  if (keyword.includes("story troom")) return true;
+  if (keyword.includes("party secret")) return true;
+  if (keyword.includes("mo colarse")) return true;
+  if (keyword.includes("colarse")) return true;
+  if (keyword.includes("convierte")) return true;
+
+  return false;
+}
+
 function isMarketPhrase(value: string) {
   const keyword = normalizeForSearch(value);
   const words = keyword.split(" ").filter(Boolean);
 
-  if (!keyword) return false;
-  if (hasBrandNoise(keyword)) return false;
-  if (keyword.includes("visual story")) return false;
-  if (keyword.includes("story tim")) return false;
-  if (keyword.includes("story multi")) return false;
-  if (keyword.includes("story troom")) return false;
+  if (hasBadPhraseShape(keyword)) return false;
   if (isWeakStandalone(keyword)) return false;
   if (words.length > 8) return false;
 
-  if (trendEntityPhrases.some((phrase) => keyword.includes(normalizeForSearch(phrase)))) {
-    return true;
+  if (keyword === "huntrix") return true;
+  if (keyword.includes("kpop demon hunters")) return true;
+  if (keyword.includes("demon hunters")) return true;
+
+  if (keyword.includes("secret")) {
+    const validSecret =
+      keyword.includes("secret room") ||
+      keyword.includes("secret house") ||
+      keyword.includes("secret base") ||
+      keyword.includes("secret door") ||
+      keyword.includes("secret school") ||
+      keyword.includes("secret party") ||
+      keyword.includes("build a secret") ||
+      keyword.includes("built a secret");
+
+    if (!validSecret) return false;
   }
 
-  if (exactMarketPhrases.some((phrase) => keyword === normalizeForSearch(phrase))) {
-    return true;
+  if (keyword.includes("demon")) {
+    const validDemon =
+      keyword.includes("kpop demon hunters") ||
+      keyword.includes("demon hunters") ||
+      keyword.includes("angel vs demon");
+
+    if (!validDemon) return false;
   }
 
-  if (statusChains.some((chain) => keyword === normalizeForSearch(chain))) {
-    return true;
-  }
+  if (keyword.includes(" vs ")) return true;
 
-  const hasStatusChain = statusChains.some((chain) =>
-    keyword.includes(normalizeForSearch(chain))
-  );
+  const hasTheme =
+    keyword.includes("baby doll") ||
+    keyword.includes("princess") ||
+    keyword.includes("mermaid") ||
+    keyword.includes("vampire") ||
+    keyword.includes("huntrix") ||
+    keyword.includes("kpop") ||
+    keyword.includes("demon hunters") ||
+    keyword.includes("school");
 
-  const hasTheme = themes.some((theme) =>
-    keyword.includes(normalizeForSearch(theme))
-  );
+  const hasAction =
+    keyword.includes("makeover") ||
+    keyword.includes("transformation") ||
+    keyword.includes("glow up") ||
+    keyword.includes("challenge") ||
+    keyword.includes("contest") ||
+    keyword.includes("fashion show") ||
+    keyword.includes("beauty contest") ||
+    keyword.includes("secret room") ||
+    keyword.includes("secret party") ||
+    keyword.includes("dance contest");
 
-  const hasAction = actions.some((action) =>
-    keyword.includes(normalizeForSearch(action))
-  );
+  const hasLocale =
+    keyword.includes("arabic") ||
+    keyword.includes("spanish") ||
+    keyword.includes("hindi") ||
+    keyword.includes("korean");
 
-  if (hasStatusChain) return true;
   if (hasTheme && hasAction) return true;
+  if (hasLocale && hasTheme) return true;
+
+  if (words.length >= 3 && hasStrongSignal(keyword)) return true;
 
   return false;
 }
@@ -449,7 +445,11 @@ function isMarketPhrase(value: string) {
 function detectCategory(keyword: string) {
   const text = normalizeForSearch(keyword);
 
-  if (trendEntityPhrases.some((phrase) => text.includes(normalizeForSearch(phrase)))) {
+  if (
+    text.includes("kpop") ||
+    text.includes("demon hunters") ||
+    text.includes("huntrix")
+  ) {
     return "Trend / Fandom";
   }
 
@@ -486,7 +486,7 @@ function detectCategory(keyword: string) {
     return "Locale Cluster";
   }
 
-  return "Phrase Cluster";
+  return "Discovered Phrase";
 }
 
 function addCandidate(
@@ -539,40 +539,19 @@ function getViewsPerDay(video: CompetitorVideo) {
   return views / ageDays;
 }
 
-function extractExactMarketPhrases(text: string) {
+function extractProtectedPatternPhrases(text: string) {
   const normalized = normalizeForSearch(text);
+  const phrases: string[] = [];
 
-  return exactMarketPhrases.filter((phrase) =>
-    normalized.includes(normalizeForSearch(phrase))
-  );
-}
+  phraseProtectionPatterns.forEach((pattern) => {
+    const matches = normalized.match(pattern);
 
-function extractTrendEntities(text: string) {
-  const normalized = normalizeForSearch(text);
+    if (matches) {
+      phrases.push(...matches);
+    }
+  });
 
-  return trendEntityPhrases.filter((phrase) =>
-    normalized.includes(normalizeForSearch(phrase))
-  );
-}
-
-function extractStatusChains(text: string) {
-  const normalized = normalizeForSearch(text);
-
-  const matches = normalized.match(
-    /(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/g
-  );
-
-  return matches || [];
-}
-
-function extractSecretBuildPhrases(text: string) {
-  const normalized = normalizeForSearch(text);
-
-  const matches = normalized.match(
-    /(?:we\s+)?(?:build|built|make|made|create|created|hide|hid)\s+(?:a\s+)?secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)/g
-  );
-
-  return matches || [];
+  return phrases;
 }
 
 function extractExactNgrams(text: string) {
@@ -585,7 +564,7 @@ function extractExactNgrams(text: string) {
 
   const phrases: string[] = [];
 
-  for (let size = 2; size <= 6; size += 1) {
+  for (let size = 2; size <= 7; size += 1) {
     for (let index = 0; index <= tokens.length - size; index += 1) {
       const phrase = tokens.slice(index, index + size).join(" ");
 
@@ -598,46 +577,19 @@ function extractExactNgrams(text: string) {
   return phrases;
 }
 
-function extractCombinedMarketPhrases(text: string) {
-  const normalized = normalizeForSearch(text);
-
-  const foundStatusChains = statusChains.filter((chain) =>
-    normalized.includes(normalizeForSearch(chain))
-  );
-
-  const foundThemes = themes.filter((theme) =>
-    normalized.includes(normalizeForSearch(theme))
-  );
-
-  const foundActions = actions.filter((action) =>
-    normalized.includes(normalizeForSearch(action))
-  );
-
-  const phrases: string[] = [];
-
-  foundStatusChains.forEach((chain) => {
-    phrases.push(chain);
-
-    foundThemes.forEach((theme) => {
-      phrases.push(`${chain} ${theme}`);
-    });
-  });
-
-  foundThemes.forEach((theme) => {
-    foundActions.forEach((action) => {
-      phrases.push(`${theme} ${action}`);
-    });
-  });
-
-  return phrases;
-}
-
 function extractTagPhrases(tags: string[] | null) {
   if (!Array.isArray(tags)) return [];
 
   return tags
     .map((tag) => normalizeForSearch(tag))
     .filter((tag) => isMarketPhrase(tag));
+}
+
+function extractTitleSegments(title: string) {
+  return title
+    .split(/[|:!?()[\]{}]+/g)
+    .map((part) => normalizeForSearch(part))
+    .filter((part) => isMarketPhrase(part));
 }
 
 function uniqueItems(items: string[]) {
@@ -651,74 +603,41 @@ function extractCandidates(video: CompetitorVideo) {
   const description = video.description || "";
   const tags = Array.isArray(video.tags) ? video.tags : [];
 
-  const highSignalText = [
-    title,
-    tags.join(" "),
-  ].join(" ");
+  const titleAndTags = [title, tags.join(" ")].join(" ");
 
   const fullText = [
     title,
-    description.slice(0, 1500),
+    description.slice(0, 1800),
     tags.join(" "),
   ].join(" ");
 
-  uniqueItems(extractExactMarketPhrases(fullText)).forEach((phrase) => {
+  uniqueItems(extractProtectedPatternPhrases(fullText)).forEach((phrase) => {
     addCandidate(
       candidates,
       phrase,
       detectCategory(phrase),
-      "exact_market_phrase_title_description_tags",
-      2
+      "protected_exact_pattern",
+      2.2
     );
   });
 
-  uniqueItems(extractTrendEntities(fullText)).forEach((phrase) => {
-    addCandidate(
-      candidates,
-      phrase,
-      "Trend / Fandom",
-      "trend_entity_title_description_tags",
-      2.1
-    );
-  });
-
-  uniqueItems(extractStatusChains(fullText)).forEach((phrase) => {
-    addCandidate(
-      candidates,
-      phrase,
-      "Contrast Cluster",
-      "status_chain_title_description_tags",
-      1.9
-    );
-  });
-
-  uniqueItems(extractSecretBuildPhrases(fullText)).forEach((phrase) => {
-    addCandidate(
-      candidates,
-      phrase,
-      "Secret Build Trend",
-      "secret_build_phrase_title_description_tags",
-      1.9
-    );
-  });
-
-  uniqueItems(extractCombinedMarketPhrases(highSignalText)).forEach((phrase) => {
+  uniqueItems(extractTitleSegments(title)).forEach((phrase) => {
     addCandidate(
       candidates,
       phrase,
       detectCategory(phrase),
-      "combined_phrase_from_same_video",
-      1.65
+      "exact_title_segment",
+      1.9
     );
   });
 
-  uniqueItems(extractExactNgrams(highSignalText)).forEach((phrase) => {
+  uniqueItems(extractExactNgrams(titleAndTags)).forEach((phrase) => {
     addCandidate(
       candidates,
       phrase,
       detectCategory(phrase),
       "exact_ngram_title_tags",
-      1.45
+      1.65
     );
   });
 
@@ -728,9 +647,21 @@ function extractCandidates(video: CompetitorVideo) {
       phrase,
       detectCategory(phrase),
       "youtube_tag_exact_phrase",
-      1.3
+      1.45
     );
   });
+
+  uniqueItems(extractExactNgrams(description.slice(0, 800))).forEach(
+    (phrase) => {
+      addCandidate(
+        candidates,
+        phrase,
+        detectCategory(phrase),
+        "description_phrase",
+        0.9
+      );
+    }
+  );
 
   const unique = new Map<string, CandidateKeyword>();
 
@@ -775,10 +706,93 @@ function normalizedLog(value: number, maxValue: number) {
   );
 }
 
-function calculateScores(
+function getLatestHistoryMap(historyRows: KeywordHistoryRow[]) {
+  const map = new Map<string, KeywordHistoryRow>();
+
+  historyRows.forEach((row) => {
+    const existing = map.get(row.keyword_slug);
+
+    if (!existing) {
+      map.set(row.keyword_slug, row);
+      return;
+    }
+
+    const existingTime = new Date(existing.captured_at).getTime();
+    const rowTime = new Date(row.captured_at).getTime();
+
+    if (rowTime > existingTime) {
+      map.set(row.keyword_slug, row);
+    }
+  });
+
+  return map;
+}
+
+function getGrowthMetrics(
   aggregate: KeywordAggregate,
+  previous: KeywordHistoryRow | undefined,
   benchmarks: ScoreBenchmarks
 ) {
+  if (!previous) {
+    const breakoutProxy = normalizedLog(
+      aggregate.maxVideoViewsPerDay,
+      benchmarks.maxSingleVideoViewsPerDay
+    );
+
+    return {
+      previousTotalViews: 0,
+      viewsGrowth: 0,
+      growthRate: 0,
+      growthScore: breakoutProxy,
+    };
+  }
+
+  const previousViews = Number(previous.total_views || 0);
+  const viewsGrowth = Math.max(0, aggregate.totalViews - previousViews);
+
+  const previousTime = new Date(previous.captured_at).getTime();
+  const ageDays = Math.max(
+    1,
+    (Date.now() - previousTime) / (1000 * 60 * 60 * 24)
+  );
+
+  const growthPerDay = viewsGrowth / ageDays;
+
+  const growthRate =
+    previousViews > 0 ? viewsGrowth / previousViews : viewsGrowth > 0 ? 1 : 0;
+
+  const growthVolumeScore = normalizedLog(
+    growthPerDay,
+    benchmarks.maxGrowthPerDay
+  );
+
+  const growthRateScore = Math.min(
+    100,
+    Math.round(Math.log10(growthRate * 100 + 1) * 35)
+  );
+
+  const growthScore = Math.min(
+    100,
+    Math.round(growthVolumeScore * 0.7 + growthRateScore * 0.3)
+  );
+
+  return {
+    previousTotalViews: previousViews,
+    viewsGrowth: Math.round(viewsGrowth),
+    growthRate,
+    growthScore,
+  };
+}
+
+function calculateScores({
+  aggregate,
+  benchmarks,
+  previous,
+}: {
+  aggregate: KeywordAggregate;
+  benchmarks: ScoreBenchmarks;
+  previous?: KeywordHistoryRow;
+}) {
   const videoCount = aggregate.videoIds.size;
   const channelCount = aggregate.channelIds.size;
 
@@ -800,51 +814,63 @@ function calculateScores(
     benchmarks.maxViewsPerDay
   );
 
-  const usageScore = normalizedLog(
-    videoCount,
-    benchmarks.maxVideoCount
+  const breakoutScore = Math.min(
+    100,
+    Math.round(
+      normalizedLog(
+        aggregate.maxVideoViewsPerDay,
+        benchmarks.maxSingleVideoViewsPerDay
+      ) * 0.75 +
+        Math.max(0, 100 - Math.min(100, latestAgeDays * 2)) * 0.25
+    )
   );
 
-  const spreadScore = normalizedLog(
-    channelCount,
-    benchmarks.maxChannelCount
-  );
+  const usageScore = normalizedLog(videoCount, benchmarks.maxVideoCount);
 
-  const recencyScore = Math.max(
-    0,
-    Math.round(100 - Math.min(100, latestAgeDays * 2))
+  const spreadScore = normalizedLog(channelCount, benchmarks.maxChannelCount);
+
+  const adoptionScore = Math.min(
+    100,
+    Math.round(usageScore * 0.45 + spreadScore * 0.55)
   );
 
   const averageQuality =
     videoCount > 0 ? aggregate.qualityWeightSum / videoCount : 1;
 
-  const qualityScore = Math.min(
+  const phraseQualityScore = Math.min(
     100,
-    Math.round(averageQuality * 48)
+    Math.round(averageQuality * 45)
+  );
+
+  const growthMetrics = getGrowthMetrics(
+    aggregate,
+    previous,
+    benchmarks
   );
 
   const trendScore = Math.min(
     100,
     Math.round(
-      trafficScore * 0.25 +
-        velocityScore * 0.3 +
-        usageScore * 0.12 +
-        spreadScore * 0.1 +
-        recencyScore * 0.08 +
-        qualityScore * 0.15
+      trafficScore * 0.12 +
+        velocityScore * 0.22 +
+        breakoutScore * 0.22 +
+        adoptionScore * 0.14 +
+        growthMetrics.growthScore * 0.18 +
+        phraseQualityScore * 0.12
     )
   );
 
-  const saturationPenalty = Math.min(28, videoCount * 0.3);
+  const saturationPenalty = Math.min(25, videoCount * 0.22);
 
   const opportunityScore = Math.min(
     100,
     Math.max(
       0,
       Math.round(
-        trendScore * 0.55 +
-          velocityScore * 0.22 +
-          qualityScore * 0.3 -
+        trendScore * 0.5 +
+          breakoutScore * 0.22 +
+          growthMetrics.growthScore * 0.18 +
+          phraseQualityScore * 0.18 -
           saturationPenalty
       )
     )
@@ -853,9 +879,90 @@ function calculateScores(
   return {
     trafficScore,
     velocityScore,
+    breakoutScore,
+    adoptionScore,
+    phraseQualityScore,
+    growthScore: growthMetrics.growthScore,
+    previousTotalViews: growthMetrics.previousTotalViews,
+    viewsGrowth: growthMetrics.viewsGrowth,
+    growthRate: growthMetrics.growthRate,
     trendScore,
     opportunityScore,
   };
+}
+
+function getMarketStage({
+  videoCount,
+  channelCount,
+  breakoutScore,
+  growthScore,
+  adoptionScore,
+  trendScore,
+}: {
+  videoCount: number;
+  channelCount: number;
+  breakoutScore: number;
+  growthScore: number;
+  adoptionScore: number;
+  trendScore: number;
+}) {
+  if (breakoutScore >= 80 && videoCount <= 3) {
+    return "Single-Channel Breakout";
+  }
+
+  if (growthScore >= 75) {
+    return "Accelerating";
+  }
+
+  if (channelCount >= 4 && adoptionScore >= 55) {
+    return "Cross-Channel Adoption";
+  }
+
+  if (trendScore >= 70) {
+    return "Rising";
+  }
+
+  return "Watch";
+}
+
+function getDiscoveryReason({
+  marketStage,
+  videoCount,
+  channelCount,
+  totalViews,
+  viewsPerDay,
+  viewsGrowth,
+}: {
+  marketStage: string;
+  videoCount: number;
+  channelCount: number;
+  totalViews: number;
+  viewsPerDay: number;
+  viewsGrowth: number;
+}) {
+  if (marketStage === "Single-Channel Breakout") {
+    return `High velocity from 1 breakout source: ${Math.round(
+      viewsPerDay
+    ).toLocaleString("en-US")} views/day.`;
+  }
+
+  if (marketStage === "Accelerating") {
+    return `Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
+      "en-US"
+    )} views.`;
+  }
+
+  if (marketStage === "Cross-Channel Adoption") {
+    return `Market adoption detected across ${channelCount} channels and ${videoCount} videos.`;
+  }
+
+  if (marketStage === "Rising") {
+    return `Rising phrase with ${totalViews.toLocaleString(
+      "en-US"
+    )} internal competitor views.`;
+  }
+
+  return `Watchlist phrase from competitor title, description or tags.`;
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -870,17 +977,38 @@ function chunkArray<T>(items: T[], size: number) {
 
 export async function POST() {
   try {
-    const { data: videos, error: videosError } = await supabase
-      .from("competitor_videos")
-      .select("*")
-      .order("view_count", { ascending: false })
-      .limit(10000);
+    const [videosResult, historyResult] = await Promise.all([
+      supabase
+        .from("competitor_videos")
+        .select("*")
+        .order("view_count", { ascending: false })
+        .limit(10000),
 
-    if (videosError) {
-      throw videosError;
+      supabase
+        .from("competitor_keyword_history")
+        .select("*")
+        .gte(
+          "captured_at",
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        )
+        .order("captured_at", { ascending: false })
+        .limit(10000),
+    ]);
+
+    if (videosResult.error) {
+      throw videosResult.error;
     }
 
-    const safeVideos = (videos || []) as CompetitorVideo[];
+    if (historyResult.error) {
+      throw historyResult.error;
+    }
+
+    const safeVideos = (videosResult.data || []) as CompetitorVideo[];
+
+    const historyRows =
+      (historyResult.data || []) as KeywordHistoryRow[];
+
+    const latestHistoryMap = getLatestHistoryMap(historyRows);
 
     const aggregates = new Map<string, KeywordAggregate>();
 
@@ -905,6 +1033,7 @@ export async function POST() {
             groupIds: new Set<number>(),
             totalViews: 0,
             maxViews: 0,
+            maxVideoViewsPerDay: 0,
             totalViewsPerDay: 0,
             latestPublishedAt: null,
             firstSeenAt: null,
@@ -932,6 +1061,10 @@ export async function POST() {
 
         aggregate.totalViews += views;
         aggregate.maxViews = Math.max(aggregate.maxViews, views);
+        aggregate.maxVideoViewsPerDay = Math.max(
+          aggregate.maxVideoViewsPerDay,
+          viewsPerDay
+        );
         aggregate.totalViewsPerDay += viewsPerDay;
         aggregate.qualityWeightSum += candidate.qualityWeight;
 
@@ -976,10 +1109,27 @@ export async function POST() {
           aggregate.videoIds.size >= 1 &&
           (aggregate.totalViews >= 30000 ||
             aggregate.totalViewsPerDay >= 3000 ||
+            aggregate.maxVideoViewsPerDay >= 8000 ||
             aggregate.channelIds.size >= 2)
         );
       }
     );
+
+    const growthValues = rawAggregates.map((aggregate) => {
+      const previous = latestHistoryMap.get(aggregate.keywordSlug);
+
+      if (!previous) return aggregate.maxVideoViewsPerDay;
+
+      const previousViews = Number(previous.total_views || 0);
+      const previousTime = new Date(previous.captured_at).getTime();
+
+      const ageDays = Math.max(
+        1,
+        (Date.now() - previousTime) / (1000 * 60 * 60 * 24)
+      );
+
+      return Math.max(0, aggregate.totalViews - previousViews) / ageDays;
+    });
 
     const benchmarks: ScoreBenchmarks = {
       maxTotalViews: Math.max(
@@ -990,6 +1140,10 @@ export async function POST() {
         1,
         ...rawAggregates.map((item) => item.totalViewsPerDay)
       ),
+      maxSingleVideoViewsPerDay: Math.max(
+        1,
+        ...rawAggregates.map((item) => item.maxVideoViewsPerDay)
+      ),
       maxVideoCount: Math.max(
         1,
         ...rawAggregates.map((item) => item.videoIds.size)
@@ -998,18 +1152,32 @@ export async function POST() {
         1,
         ...rawAggregates.map((item) => item.channelIds.size)
       ),
+      maxGrowthPerDay: Math.max(1, ...growthValues),
     };
 
     const keywordAggregates = rawAggregates
       .sort((a, b) => {
-        const scoreA = calculateScores(a, benchmarks);
-        const scoreB = calculateScores(b, benchmarks);
+        const scoreA = calculateScores({
+          aggregate: a,
+          benchmarks,
+          previous: latestHistoryMap.get(a.keywordSlug),
+        });
+
+        const scoreB = calculateScores({
+          aggregate: b,
+          benchmarks,
+          previous: latestHistoryMap.get(b.keywordSlug),
+        });
 
         const finalA =
-          scoreA.trendScore * 0.72 + scoreA.opportunityScore * 0.28;
+          scoreA.trendScore * 0.55 +
+          scoreA.opportunityScore * 0.25 +
+          scoreA.breakoutScore * 0.2;
 
         const finalB =
-          scoreB.trendScore * 0.72 + scoreB.opportunityScore * 0.28;
+          scoreB.trendScore * 0.55 +
+          scoreB.opportunityScore * 0.25 +
+          scoreB.breakoutScore * 0.2;
 
         return finalB - finalA;
       })
@@ -1026,10 +1194,27 @@ export async function POST() {
       .neq("id", 0);
 
     const keywordRows = keywordAggregates.map((aggregate, index) => {
-      const scores = calculateScores(aggregate, benchmarks);
+      const previous = latestHistoryMap.get(aggregate.keywordSlug);
+
+      const scores = calculateScores({
+        aggregate,
+        benchmarks,
+        previous,
+      });
+
       const videoCount = aggregate.videoIds.size;
+      const channelCount = aggregate.channelIds.size;
       const avgViews =
         videoCount > 0 ? aggregate.totalViews / videoCount : 0;
+
+      const marketStage = getMarketStage({
+        videoCount,
+        channelCount,
+        breakoutScore: scores.breakoutScore,
+        growthScore: scores.growthScore,
+        adoptionScore: scores.adoptionScore,
+        trendScore: scores.trendScore,
+      });
 
       return {
         keyword: aggregate.keyword,
@@ -1037,7 +1222,7 @@ export async function POST() {
         category: aggregate.category,
 
         video_count: videoCount,
-        channel_count: aggregate.channelIds.size,
+        channel_count: channelCount,
         group_count: aggregate.groupIds.size,
 
         total_views: Math.round(aggregate.totalViews),
@@ -1054,8 +1239,27 @@ export async function POST() {
         velocity_score: scores.velocityScore,
         opportunity_score: scores.opportunityScore,
 
+        growth_score: scores.growthScore,
+        breakout_score: scores.breakoutScore,
+        adoption_score: scores.adoptionScore,
+        phrase_quality_score: scores.phraseQualityScore,
+
+        previous_total_views: scores.previousTotalViews,
+        views_growth: scores.viewsGrowth,
+        growth_rate: Number(scores.growthRate.toFixed(4)),
+
+        discovery_reason: getDiscoveryReason({
+          marketStage,
+          videoCount,
+          channelCount,
+          totalViews: aggregate.totalViews,
+          viewsPerDay: aggregate.totalViewsPerDay,
+          viewsGrowth: scores.viewsGrowth,
+        }),
+
+        market_stage: marketStage,
         keyword_rank: index + 1,
-        source: "exact_phrase_market_keywords_v5",
+        source: "dynamic_market_discovery_engine_v6",
         last_refreshed_at: new Date().toISOString(),
       };
     });
@@ -1124,12 +1328,51 @@ export async function POST() {
       }
     }
 
+    const historyRowsToInsert = keywordRows.map((keyword) => ({
+      keyword_slug: keyword.keyword_slug,
+      keyword: keyword.keyword,
+      category: keyword.category,
+
+      video_count: keyword.video_count,
+      channel_count: keyword.channel_count,
+      group_count: keyword.group_count,
+
+      total_views: keyword.total_views,
+      total_views_per_day: keyword.total_views_per_day,
+
+      trend_score: keyword.trend_score,
+      opportunity_score: keyword.opportunity_score,
+      growth_score: keyword.growth_score,
+      breakout_score: keyword.breakout_score,
+      adoption_score: keyword.adoption_score,
+
+      captured_at: new Date().toISOString(),
+    }));
+
+    for (const chunk of chunkArray(historyRowsToInsert, 500)) {
+      const { error } = await supabase
+        .from("competitor_keyword_history")
+        .insert(chunk);
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    await supabase
+      .from("competitor_keyword_history")
+      .delete()
+      .lt(
+        "captured_at",
+        new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString()
+      );
+
     return NextResponse.json({
       ok: true,
       keywordCount: keywordRows.length,
       matchCount: matchRows.length,
       videoCount: safeVideos.length,
-      message: `Exact Phrase Radar refreshed ${keywordRows.length} market keyword phrases from title, description and tags of ${safeVideos.length} competitor videos.`,
+      message: `Dynamic Keyword Discovery refreshed ${keywordRows.length} market phrases from ${safeVideos.length} competitor videos. Growth will become stronger after daily refresh history is collected.`,
     });
   } catch (error) {
     const message =
