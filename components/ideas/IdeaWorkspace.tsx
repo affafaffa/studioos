@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Database,
   Network,
@@ -85,76 +85,76 @@ export default function IdeaWorkspace({
   const [activeSection, setActiveSection] =
     useState<IdeaSection>("strategy-map");
 
+  useEffect(() => {
+    const savedSection = window.localStorage.getItem(
+      "studioos-idea-section"
+    ) as IdeaSection | null;
+
+    if (savedSection) {
+      setActiveSection(savedSection);
+    }
+
+    function handleSectionChange(event: Event) {
+      const customEvent = event as CustomEvent<{
+        section?: IdeaSection;
+      }>;
+
+      if (customEvent.detail?.section) {
+        setActiveSection(customEvent.detail.section);
+      }
+    }
+
+    window.addEventListener(
+      "studioos-idea-section-change",
+      handleSectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "studioos-idea-section-change",
+        handleSectionChange
+      );
+    };
+  }, []);
+
   const selectedStyle = sections[activeSection];
   const SelectedIcon = selectedStyle.icon;
 
   return (
     <div className="space-y-6 studioos-readable">
-      <div className="bg-white rounded-3xl shadow border p-4">
-        <div className="grid grid-cols-4 gap-3">
-          {(Object.keys(sections) as IdeaSection[]).map((section) => {
-            const style = sections[section];
-            const Icon = style.icon;
-            const isActive = activeSection === section;
-
-            return (
-              <button
-                key={section}
-                onClick={() => setActiveSection(section)}
-                className={`rounded-2xl border p-5 text-left transition ${
-                  isActive
-                    ? `${style.bg} ${style.border}`
-                    : "border-gray-100 hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${style.color} text-white flex items-center justify-center shrink-0`}
-                  >
-                    <Icon size={21} />
-                  </div>
-
-                  <div>
-                    <p
-                      className={`font-bold text-lg ${
-                        isActive ? style.text : "text-zinc-900"
-                      }`}
-                    >
-                      {style.label}
-                    </p>
-
-                    <p className="text-sm text-slate-600 mt-1">
-                      {style.description}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <div
         className={`rounded-3xl border p-6 ${selectedStyle.bg} ${selectedStyle.border}`}
       >
-        <div className="flex items-start gap-4">
-          <div
-            className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${selectedStyle.color} text-white flex items-center justify-center`}
-          >
-            <SelectedIcon size={22} />
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div
+              className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${selectedStyle.color} text-white flex items-center justify-center shrink-0`}
+            >
+              <SelectedIcon size={22} />
+            </div>
+
+            <div>
+              <p className={`text-xs font-bold uppercase tracking-wide ${selectedStyle.text}`}>
+                Ideas / Current Page
+              </p>
+
+              <h2 className="text-2xl font-bold mt-2">
+                {selectedStyle.label}
+              </h2>
+
+              <p className="text-slate-600 mt-1">
+                {selectedStyle.description}
+              </p>
+            </div>
           </div>
 
-          <div>
-            <p className={`text-xs font-bold uppercase tracking-wide ${selectedStyle.text}`}>
-              Current Idea Page
+          <div className="text-right">
+            <p className="text-xs text-slate-500">
+              Total Ideas
             </p>
 
-            <h2 className="text-2xl font-bold mt-2">
-              {selectedStyle.label}
-            </h2>
-
-            <p className="text-slate-600 mt-1">
-              {selectedStyle.description}
+            <p className="text-2xl font-bold">
+              {ideas.length.toLocaleString("en-US")}
             </p>
           </div>
         </div>

@@ -14,15 +14,24 @@ import {
   LayoutDashboard,
   Lightbulb,
   LineChart,
+  Network,
   PieChart,
   Radar,
   Rocket,
   Settings,
+  Shuffle,
   Sparkles,
   Target,
   Video,
+  WandSparkles,
 } from "lucide-react";
 import type { ActiveView } from "@/types/navigation";
+
+type IdeaSection =
+  | "strategy-map"
+  | "brainstorm-flow"
+  | "remix-rule-engine"
+  | "idea-bank";
 
 type CompetitorSection =
   | "market-share"
@@ -92,6 +101,38 @@ const navItems: {
   },
 ];
 
+const ideaSections: {
+  id: IdeaSection;
+  label: string;
+  icon: LucideIcon;
+  colorClass: string;
+}[] = [
+  {
+    id: "strategy-map",
+    label: "Strategy Map",
+    icon: Network,
+    colorClass: "text-purple-400",
+  },
+  {
+    id: "brainstorm-flow",
+    label: "Brainstorm Flow",
+    icon: WandSparkles,
+    colorClass: "text-rose-400",
+  },
+  {
+    id: "remix-rule-engine",
+    label: "Remix Rule Engine",
+    icon: Shuffle,
+    colorClass: "text-amber-400",
+  },
+  {
+    id: "idea-bank",
+    label: "Idea Bank",
+    icon: Database,
+    colorClass: "text-blue-400",
+  },
+];
+
 const competitorSections: {
   id: CompetitorSection;
   label: string;
@@ -154,6 +195,9 @@ export default function Sidebar({
   activeView,
   onChangeView,
 }: Props) {
+  const [activeIdeaSection, setActiveIdeaSection] =
+    useState<IdeaSection>("strategy-map");
+
   const [activeCompetitorSection, setActiveCompetitorSection] =
     useState<CompetitorSection>("market-share");
 
@@ -161,6 +205,14 @@ export default function Sidebar({
     useState<AnalystSection>("group-drilldown");
 
   useEffect(() => {
+    const savedIdeaSection = window.localStorage.getItem(
+      "studioos-idea-section"
+    ) as IdeaSection | null;
+
+    if (savedIdeaSection) {
+      setActiveIdeaSection(savedIdeaSection);
+    }
+
     const savedCompetitorSection = window.localStorage.getItem(
       "studioos-competitor-section"
     ) as CompetitorSection | null;
@@ -175,6 +227,16 @@ export default function Sidebar({
 
     if (savedAnalystSection) {
       setActiveAnalystSection(savedAnalystSection);
+    }
+
+    function handleIdeaSectionChange(event: Event) {
+      const customEvent = event as CustomEvent<{
+        section?: IdeaSection;
+      }>;
+
+      if (customEvent.detail?.section) {
+        setActiveIdeaSection(customEvent.detail.section);
+      }
     }
 
     function handleCompetitorSectionChange(event: Event) {
@@ -198,6 +260,11 @@ export default function Sidebar({
     }
 
     window.addEventListener(
+      "studioos-idea-section-change",
+      handleIdeaSectionChange
+    );
+
+    window.addEventListener(
       "studioos-competitor-section-change",
       handleCompetitorSectionChange
     );
@@ -208,6 +275,11 @@ export default function Sidebar({
     );
 
     return () => {
+      window.removeEventListener(
+        "studioos-idea-section-change",
+        handleIdeaSectionChange
+      );
+
       window.removeEventListener(
         "studioos-competitor-section-change",
         handleCompetitorSectionChange
@@ -222,6 +294,21 @@ export default function Sidebar({
 
   function handleMainClick(view: ActiveView) {
     onChangeView(view);
+
+    if (view === "ideas") {
+      window.localStorage.setItem(
+        "studioos-idea-section",
+        activeIdeaSection
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("studioos-idea-section-change", {
+          detail: {
+            section: activeIdeaSection,
+          },
+        })
+      );
+    }
 
     if (view === "competitors") {
       window.localStorage.setItem(
@@ -252,6 +339,24 @@ export default function Sidebar({
         })
       );
     }
+  }
+
+  function handleIdeaSectionClick(section: IdeaSection) {
+    setActiveIdeaSection(section);
+    onChangeView("ideas");
+
+    window.localStorage.setItem(
+      "studioos-idea-section",
+      section
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("studioos-idea-section-change", {
+        detail: {
+          section,
+        },
+      })
+    );
   }
 
   function handleCompetitorSectionClick(section: CompetitorSection) {
@@ -290,6 +395,7 @@ export default function Sidebar({
     );
   }
 
+  const ideasOpen = activeView === "ideas";
   const competitorOpen = activeView === "competitors";
   const analystOpen = activeView === "analyst";
 
@@ -311,6 +417,7 @@ export default function Sidebar({
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
+          const isIdeas = item.id === "ideas";
           const isCompetitor = item.id === "competitors";
           const isAnalyst = item.id === "analyst";
 
@@ -332,6 +439,13 @@ export default function Sidebar({
                   </span>
                 </div>
 
+                {isIdeas &&
+                  (ideasOpen ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  ))}
+
                 {isCompetitor &&
                   (competitorOpen ? (
                     <ChevronDown size={16} />
@@ -346,6 +460,39 @@ export default function Sidebar({
                     <ChevronRight size={16} />
                   ))}
               </button>
+
+              {isIdeas && ideasOpen && (
+                <div className="mt-2 ml-3 pl-3 border-l border-zinc-800 space-y-1">
+                  {ideaSections.map((section) => {
+                    const SectionIcon = section.icon;
+                    const isSectionActive =
+                      activeIdeaSection === section.id;
+
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() =>
+                          handleIdeaSectionClick(section.id)
+                        }
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
+                          isSectionActive
+                            ? "bg-zinc-800 text-white"
+                            : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                        }`}
+                      >
+                        <SectionIcon
+                          size={16}
+                          className={section.colorClass}
+                        />
+
+                        <span className="text-[13.5px] font-semibold leading-5">
+                          {section.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {isCompetitor && competitorOpen && (
                 <div className="mt-2 ml-3 pl-3 border-l border-zinc-800 space-y-1">
