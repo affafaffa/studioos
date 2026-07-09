@@ -107,7 +107,7 @@ export default function Topbar({
         </div>
 
         {open && query.trim() && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden">
+          <div className="absolute top-full left-[252px] right-0 mt-2 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden">
             {results.length > 0 ? (
               <div className="max-h-96 overflow-auto">
                 {results.map((idea) => (

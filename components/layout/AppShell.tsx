@@ -51,7 +51,7 @@ export default function AppShell({
   }
 
   return (
-    <main className="flex h-screen bg-gray-100">
+    <main className="flex h-screen bg-gray-100 ml-[252px]">
       <Sidebar
         activeView={activeView}
         onChangeView={setActiveView}

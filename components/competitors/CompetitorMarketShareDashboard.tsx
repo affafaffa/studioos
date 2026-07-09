@@ -46,6 +46,7 @@ type GroupMarketRow = {
   monthOverMonthGrowth: number;
   topVideoTitle: string;
   topVideoViews: number;
+  topVideoUrl: string | null;
   topChannel: string;
   dailyRows: DailyMarketRow[];
 };
@@ -515,9 +516,21 @@ function MarketShareBarChart({
                   Top video
                 </p>
 
-                <p className="font-semibold mt-2 leading-5">
-                  {activeRow.topVideoTitle}
-                </p>
+                {activeRow.topVideoUrl ? (
+                  <a
+                    href={activeRow.topVideoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(event) => event.stopPropagation()}
+                    className="font-semibold mt-2 leading-5 block text-white hover:underline"
+                  >
+                    {activeRow.topVideoTitle}
+                  </a>
+                ) : (
+                  <p className="font-semibold mt-2 leading-5">
+                    {activeRow.topVideoTitle}
+                  </p>
+                )}
 
                 <p className="text-xs text-white/60 mt-2">
                   {activeRow.topChannel} · {formatNumber(activeRow.topVideoViews)} views
@@ -743,6 +756,7 @@ export default function CompetitorMarketShareDashboard({
   const [expandedGroupKey, setExpandedGroupKey] = useState<string>("");
   const [selectedGroupKey, setSelectedGroupKey] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [marketPage, setMarketPage] = useState(1);
 
   const groupMap = useMemo(() => {
     return new Map(
@@ -938,6 +952,7 @@ export default function CompetitorMarketShareDashboard({
         monthOverMonthGrowth,
         topVideoTitle: topVideo?.title || "-",
         topVideoViews: Number(topVideo?.view_count || 0),
+        topVideoUrl: topVideo?.video_url || null,
         topChannel,
         dailyRows,
       };
@@ -966,6 +981,20 @@ export default function CompetitorMarketShareDashboard({
       row.topChannel.toLowerCase().includes(query)
     );
   });
+
+  const MARKET_TABLE_PAGE_SIZE = 12;
+
+  const totalMarketPages = Math.max(
+    1,
+    Math.ceil(filteredRows.length / MARKET_TABLE_PAGE_SIZE)
+  );
+
+  const safeMarketPage = Math.min(marketPage, totalMarketPages);
+
+  const paginatedMarketRows = filteredRows.slice(
+    (safeMarketPage - 1) * MARKET_TABLE_PAGE_SIZE,
+    safeMarketPage * MARKET_TABLE_PAGE_SIZE
+  );
 
   const selectedRow =
     filteredRows.find((row) => row.groupKey === selectedGroupKey) ||
@@ -1059,6 +1088,7 @@ export default function CompetitorMarketShareDashboard({
               setSelectedMonth(event.target.value);
               setExpandedGroupKey("");
               setSelectedGroupKey("");
+              setMarketPage(1);
             }}
             className="border rounded-xl px-4 py-3"
           >
@@ -1073,9 +1103,10 @@ export default function CompetitorMarketShareDashboard({
 
           <select
             value={metricMode}
-            onChange={(event) =>
-              setMetricMode(event.target.value as MetricMode)
-            }
+            onChange={(event) => {
+              setMetricMode(event.target.value as MetricMode);
+              setMarketPage(1);
+            }}
             className="border rounded-xl px-4 py-3"
           >
             <option value="views">Market share by traffic</option>
@@ -1085,7 +1116,10 @@ export default function CompetitorMarketShareDashboard({
 
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setMarketPage(1);
+            }}
             placeholder="Search group..."
             className="border rounded-xl px-4 py-3"
           />
@@ -1097,6 +1131,7 @@ export default function CompetitorMarketShareDashboard({
               setSearch("");
               setExpandedGroupKey("");
               setSelectedGroupKey("");
+              setMarketPage(1);
             }}
             className="border rounded-xl px-4 py-3 hover:bg-gray-50"
           >
@@ -1150,9 +1185,10 @@ export default function CompetitorMarketShareDashboard({
             </thead>
 
             <tbody>
-              {filteredRows.map((row, index) => {
+              {paginatedMarketRows.map((row, index) => {
+                const displayIndex = (safeMarketPage - 1) * MARKET_TABLE_PAGE_SIZE + index;
                 const isExpanded = expandedGroupKey === row.groupKey;
-                const palette = getPalette(index);
+                const palette = getPalette(displayIndex);
                 const isSelected = selectedRow?.groupKey === row.groupKey;
 
                 return (
@@ -1179,8 +1215,8 @@ export default function CompetitorMarketShareDashboard({
                             color: palette.text,
                           }}
                         >
-                          {index === 0 ? <Trophy size={14} /> : null}
-                          #{index + 1}
+                          {displayIndex === 0 ? <Trophy size={14} /> : null}
+                          #{displayIndex + 1}
                         </div>
                       </td>
 
@@ -1257,9 +1293,21 @@ export default function CompetitorMarketShareDashboard({
                       </td>
 
                       <td className="p-4">
-                        <p className="font-medium">
-                          {row.topVideoTitle}
-                        </p>
+                        {row.topVideoUrl ? (
+                          <a
+                            href={row.topVideoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(event) => event.stopPropagation()}
+                            className="font-medium text-blue-700 hover:underline"
+                          >
+                            {row.topVideoTitle}
+                          </a>
+                        ) : (
+                          <p className="font-medium">
+                            {row.topVideoTitle}
+                          </p>
+                        )}
 
                         <p className="text-xs text-gray-500 mt-1">
                           {row.topChannel} · {formatNumber(row.topVideoViews)} views
@@ -1430,6 +1478,34 @@ export default function CompetitorMarketShareDashboard({
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Showing {paginatedMarketRows.length} / {filteredRows.length} groups · Page {safeMarketPage} / {totalMarketPages}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                setMarketPage((page) => Math.max(1, page - 1))
+              }
+              disabled={safeMarketPage === 1}
+              className="px-4 py-2 rounded-xl border bg-white disabled:opacity-50 hover:bg-gray-50"
+            >
+              Previous
+            </button>
+
+            <button
+              onClick={() =>
+                setMarketPage((page) => Math.min(totalMarketPages, page + 1))
+              }
+              disabled={safeMarketPage === totalMarketPages}
+              className="px-4 py-2 rounded-xl border bg-white disabled:opacity-50 hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

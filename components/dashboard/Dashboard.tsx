@@ -7,7 +7,9 @@ import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
 import CompetitorIntelligence from "@/components/competitors/CompetitorIntelligence";
+import CompetitorMarketShareDashboard from "@/components/competitors/CompetitorMarketShareDashboard";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
+import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
 import CompetitorVideosPanel from "@/components/competitors/CompetitorVideosPanel";
 import CompetitorRemixLab from "@/components/competitors/CompetitorRemixLab";
 import type { Idea } from "@/types/idea";
@@ -25,6 +27,8 @@ type Props = {
   videos: Video[];
   competitorGroups: CompetitorGroup[];
   competitorChannels: CompetitorChannel[];
+  competitorVideos: CompetitorVideo[];
+  competitorRemixes: any[];
   competitorVideos?: CompetitorVideo[];
   competitorRemixes?: CompetitorRemix[];
   activeView: ActiveView;
@@ -216,32 +220,18 @@ export default function Dashboard({
 
   if (activeView === "competitors") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen space-y-8">
+      <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Competitors"
-          description="Track competitor groups, videos, remixes and market patterns."
-          action={
-            <BulkImportChannelsButton
-              groups={safeCompetitorGroups}
-              existingChannels={safeCompetitorChannels}
-            />
-          }
+          description="Track competitor groups, market share, keywords, remixes and video metadata."
         />
 
-        <CompetitorRemixLab
-          competitorRemixes={safeCompetitorRemixes}
-          onOpenIdea={onOpenIdeaFromRemix}
-        />
-
-        <CompetitorVideosPanel
+        <CompetitorWorkspace
           competitorGroups={safeCompetitorGroups}
           competitorChannels={safeCompetitorChannels}
           competitorVideos={safeCompetitorVideos}
-        />
-
-        <CompetitorIntelligence
-          competitorGroups={safeCompetitorGroups}
-          competitorChannels={safeCompetitorChannels}
+          competitorRemixes={safeCompetitorRemixes}
+          onOpenIdea={onOpenIdeaFromRemix}
         />
       </div>
     );
