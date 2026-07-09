@@ -447,7 +447,7 @@ function MarketShareBarChart({
             <>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-zinc-400">
+                  <p className="text-xs font-bold uppercase tracking-wider text-white/75">
                     Selected group
                   </p>
 
@@ -481,29 +481,29 @@ function MarketShareBarChart({
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-6">
-                <div className="rounded-2xl bg-white/10 border border-white/10 p-4">
-                  <p className="text-xs text-zinc-400">Traffic</p>
+                <div className="rounded-2xl bg-white/15 border border-white/20 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-white/75">Traffic</p>
                   <p className="text-2xl font-bold mt-1">
                     {formatNumber(activeRow.totalViews)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/10 border border-white/10 p-4">
-                  <p className="text-xs text-zinc-400">Views/day</p>
+                <div className="rounded-2xl bg-white/15 border border-white/20 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-white/75">Views/day</p>
                   <p className="text-2xl font-bold mt-1">
                     {formatNumber(Math.round(activeRow.viewsPerDay))}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/10 border border-white/10 p-4">
-                  <p className="text-xs text-zinc-400">Videos</p>
+                <div className="rounded-2xl bg-white/15 border border-white/20 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-white/75">Videos</p>
                   <p className="text-2xl font-bold mt-1">
                     {formatNumber(activeRow.totalVideos)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white/10 border border-white/10 p-4">
-                  <p className="text-xs text-zinc-400">MoM</p>
+                <div className="rounded-2xl bg-white/15 border border-white/20 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-white/75">MoM</p>
                   <p className="text-2xl font-bold mt-1">
                     {getGrowthLabel(activeRow.monthOverMonthGrowth)}
                   </p>
@@ -511,7 +511,7 @@ function MarketShareBarChart({
               </div>
 
               <div className="mt-6 rounded-2xl bg-white/10 border border-white/10 p-4">
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Top video
                 </p>
 
@@ -519,7 +519,7 @@ function MarketShareBarChart({
                   {activeRow.topVideoTitle}
                 </p>
 
-                <p className="text-xs text-zinc-400 mt-2">
+                <p className="text-xs text-white/60 mt-2">
                   {activeRow.topChannel} · {formatNumber(activeRow.topVideoViews)} views
                 </p>
               </div>
@@ -717,7 +717,7 @@ function DailyTrafficLineChart({
                   {formatNumber(hoveredPoint.views)}
                 </p>
 
-                <p className="text-xs text-zinc-400 mt-1">
+                <p className="text-xs text-white/60 mt-1">
                   {hoveredPoint.videos} videos · {formatPercent(hoveredPoint.share)} daily share
                 </p>
               </div>
