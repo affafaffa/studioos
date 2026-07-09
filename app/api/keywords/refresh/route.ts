@@ -6,22 +6,7 @@ type CandidateKeyword = {
   keyword: string;
   category: string;
   source: string;
-};
-
-type KeywordAggregate = {
-  keyword: string;
-  keywordSlug: string;
-  category: string;
-  videoIds: Set<number>;
-  channelIds: Set<number>;
-  groupIds: Set<number>;
-  totalViews: number;
-  maxViews: number;
-  totalViewsPerDay: number;
-  latestPublishedAt: string | null;
-  firstSeenAt: string | null;
-  lastSeenAt: string | null;
-  matches: KeywordMatch[];
+  qualityWeight: number;
 };
 
 type KeywordMatch = {
@@ -40,6 +25,30 @@ type KeywordMatch = {
   commentCount: number;
   viewsPerDay: number;
   matchSource: string;
+};
+
+type KeywordAggregate = {
+  keyword: string;
+  keywordSlug: string;
+  category: string;
+  videoIds: Set<number>;
+  channelIds: Set<number>;
+  groupIds: Set<number>;
+  totalViews: number;
+  maxViews: number;
+  totalViewsPerDay: number;
+  latestPublishedAt: string | null;
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+  qualityWeightSum: number;
+  matches: KeywordMatch[];
+};
+
+type ScoreBenchmarks = {
+  maxTotalViews: number;
+  maxViewsPerDay: number;
+  maxVideoCount: number;
+  maxChannelCount: number;
 };
 
 const stopWords = new Set([
@@ -80,30 +89,134 @@ const stopWords = new Set([
   "official",
   "channel",
   "video",
-  "story",
-  "stories",
-  "animation",
-  "cartoon",
   "full",
   "episode",
   "compilation",
   "kids",
   "funny",
-  "girl",
-  "boy",
-  "girls",
-  "boys",
-  "baby",
 ]);
 
-const blockedPhrases = new Set([
+const genericSingleWords = new Set([
+  "story",
+  "stories",
+  "animation",
+  "cartoon",
+  "comedy",
+  "movie",
+  "recap",
+  "contrast",
+  "visual",
+  "official",
+  "challenge",
+  "transformation",
+  "makeover",
+  "girl",
+  "boy",
+  "baby",
+  "doll",
+  "arabic",
+]);
+
+const blockedExactPhrases = new Set([
+  "visual story",
+  "contrast",
+  "comedy",
+  "movie",
+  "recap",
   "official channel",
   "full episode",
-  "for kids",
   "funny video",
   "cartoon animation",
   "baby doll stories",
+  "baby doll official",
+  "stories official",
 ]);
+
+const strongSeedWords = new Set([
+  "mermaid",
+  "princess",
+  "vampire",
+  "huntrix",
+  "zombie",
+  "angel",
+  "demon",
+  "queen",
+  "fairy",
+]);
+
+const knownPatterns = [
+  "rich vs poor",
+  "poor vs rich",
+  "giga rich",
+  "rich girl",
+  "poor girl",
+  "gold vs trash",
+  "gold vs silver",
+  "diamond vs broken",
+  "angel vs demon",
+  "good vs bad",
+  "baby doll",
+  "baby doll arabic",
+  "rich vs poor baby doll",
+  "baby doll transformation",
+  "baby doll makeover",
+  "baby doll visual story",
+  "mermaid transformation",
+  "princess makeover",
+  "vampire party",
+  "vampire transformation",
+  "dance contest",
+  "school makeover",
+  "secret room",
+  "glow up",
+  "makeover story",
+  "transformation story",
+  "rainbow princess",
+  "gold princess",
+  "poor mermaid",
+  "magic princess",
+];
+
+const themeSeeds = [
+  "baby doll",
+  "mermaid",
+  "princess",
+  "vampire",
+  "angel",
+  "demon",
+  "queen",
+  "fairy",
+  "school",
+  "rainbow",
+  "magic",
+  "tim tin",
+  "huntrix",
+];
+
+const statusSeeds = [
+  "rich",
+  "poor",
+  "giga rich",
+  "gold",
+  "diamond",
+  "broken",
+  "trash",
+  "secret",
+  "royal",
+  "dark",
+  "light",
+];
+
+const actionSeeds = [
+  "transformation",
+  "makeover",
+  "glow up",
+  "dance contest",
+  "challenge",
+  "battle",
+  "visual story",
+  "story",
+];
 
 function cleanKeyword(value: string) {
   return value
@@ -113,9 +226,8 @@ function cleanKeyword(value: string) {
 }
 
 function normalizeKeyword(value: string) {
-  const cleaned = cleanKeyword(value).toLowerCase();
-
-  return cleaned
+  return cleanKeyword(value)
+    .toLowerCase()
     .split(" ")
     .filter(Boolean)
     .join(" ");
@@ -128,22 +240,138 @@ function slugifyKeyword(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function titleCaseKeyword(value: string) {
+  return normalizeKeyword(value)
+    .split(" ")
+    .map((word) => {
+      if (word === "vs") return "vs";
+      if (word.length <= 2) return word.toUpperCase();
+
+      return `${word.charAt(0).toUpperCase()}${word.slice(1)}`;
+    })
+    .join(" ");
+}
+
 function isUsefulKeyword(value: string) {
   const keyword = normalizeKeyword(value);
   const slug = slugifyKeyword(keyword);
 
   if (!keyword || !slug) return false;
   if (keyword.length < 4) return false;
-  if (blockedPhrases.has(keyword)) return false;
+  if (blockedExactPhrases.has(keyword)) return false;
 
   const words = keyword.split(" ");
 
   if (words.length > 6) return false;
-  if (words.length === 1 && words[0].length < 5) return false;
+
+  if (words.length === 1) {
+    return (
+      strongSeedWords.has(words[0]) &&
+      !genericSingleWords.has(words[0])
+    );
+  }
 
   const nonStopWords = words.filter((word) => !stopWords.has(word));
 
-  return nonStopWords.length > 0;
+  if (nonStopWords.length === 0) return false;
+
+  const allWordsGeneric = words.every((word) =>
+    genericSingleWords.has(word)
+  );
+
+  if (allWordsGeneric) return false;
+
+  const hasIntentWord = words.some((word) =>
+    [
+      "vs",
+      "rich",
+      "poor",
+      "gold",
+      "diamond",
+      "broken",
+      "trash",
+      "transformation",
+      "makeover",
+      "glow",
+      "contest",
+      "challenge",
+      "battle",
+      "princess",
+      "mermaid",
+      "vampire",
+      "magic",
+      "angel",
+      "demon",
+      "baby",
+      "doll",
+      "arabic",
+      "tim",
+      "tin",
+      "school",
+    ].includes(word)
+  );
+
+  return hasIntentWord || words.length >= 3;
+}
+
+function detectKeywordCategory(keyword: string) {
+  const text = keyword.toLowerCase();
+
+  if (text.includes(" vs ") || text.includes(" vs")) {
+    return "Contrast Combo";
+  }
+
+  if (
+    text.includes("transformation") ||
+    text.includes("transform") ||
+    text.includes("glow up") ||
+    text.includes("makeover")
+  ) {
+    return "Transformation";
+  }
+
+  if (
+    text.includes("rich") ||
+    text.includes("poor") ||
+    text.includes("gold") ||
+    text.includes("diamond") ||
+    text.includes("broken") ||
+    text.includes("trash")
+  ) {
+    return "Status Combo";
+  }
+
+  if (
+    text.includes("contest") ||
+    text.includes("challenge") ||
+    text.includes("battle")
+  ) {
+    return "Challenge";
+  }
+
+  if (
+    text.includes("arabic") ||
+    text.includes("spanish") ||
+    text.includes("hindi") ||
+    text.includes("korean")
+  ) {
+    return "Locale Cluster";
+  }
+
+  if (
+    text.includes("mermaid") ||
+    text.includes("princess") ||
+    text.includes("vampire") ||
+    text.includes("queen") ||
+    text.includes("magic") ||
+    text.includes("angel") ||
+    text.includes("demon") ||
+    text.includes("baby doll")
+  ) {
+    return "Theme Cluster";
+  }
+
+  return "SEO Phrase";
 }
 
 function getBestThumbnail(video: CompetitorVideo) {
@@ -179,7 +407,8 @@ function addCandidate(
   list: CandidateKeyword[],
   keyword: string | null | undefined,
   category: string,
-  source: string
+  source: string,
+  qualityWeight = 1
 ) {
   if (!keyword) return;
 
@@ -188,99 +417,41 @@ function addCandidate(
   if (!isUsefulKeyword(normalized)) return;
 
   list.push({
-    keyword: normalized,
+    keyword: titleCaseKeyword(normalized),
     category,
     source,
+    qualityWeight,
   });
-}
-
-function detectKeywordCategory(keyword: string) {
-  const text = keyword.toLowerCase();
-
-  if (text.includes(" vs ") || text.includes(" vs")) {
-    return "Contrast";
-  }
-
-  if (
-    text.includes("transformation") ||
-    text.includes("transform") ||
-    text.includes("glow up") ||
-    text.includes("makeover")
-  ) {
-    return "Transformation";
-  }
-
-  if (
-    text.includes("rich") ||
-    text.includes("poor") ||
-    text.includes("gold") ||
-    text.includes("diamond") ||
-    text.includes("broke") ||
-    text.includes("broken")
-  ) {
-    return "Status";
-  }
-
-  if (
-    text.includes("mermaid") ||
-    text.includes("princess") ||
-    text.includes("queen") ||
-    text.includes("magic") ||
-    text.includes("angel") ||
-    text.includes("demon")
-  ) {
-    return "Theme";
-  }
-
-  if (
-    text.includes("challenge") ||
-    text.includes("contest") ||
-    text.includes("battle")
-  ) {
-    return "Challenge";
-  }
-
-  return "Keyword";
 }
 
 function extractKnownPatterns(title: string) {
   const text = title.toLowerCase();
 
-  const patterns = [
-    "rich vs poor",
-    "poor vs rich",
-    "gold vs silver",
-    "diamond vs broken",
-    "angel vs demon",
-    "good vs bad",
-    "princess makeover",
-    "mermaid transformation",
-    "baby doll",
-    "rich girl",
-    "poor girl",
-    "giga rich",
-    "dance contest",
-    "school makeover",
-    "secret room",
-    "glow up",
-    "makeover story",
-    "transformation story",
-    "rainbow princess",
-    "gold princess",
-    "poor mermaid",
-    "magic princess",
-  ];
+  return knownPatterns.filter((pattern) => text.includes(pattern));
+}
 
-  return patterns.filter((pattern) => text.includes(pattern));
+function extractVsPatterns(title: string) {
+  const text = title.toLowerCase();
+  const matches = text.match(
+    /[a-z0-9]+(?:\s+[a-z0-9]+){0,2}\s+vs\s+[a-z0-9]+(?:\s+[a-z0-9]+){0,2}/g
+  );
+
+  return matches || [];
 }
 
 function extractTitlePhrases(title: string) {
   const candidates: string[] = [];
 
-  const titleParts = title
+  const cleanedTitle = cleanKeyword(title);
+
+  const titleParts = cleanedTitle
     .split(/[|:!?()[\]{}]+/g)
-    .map((part) => cleanKeyword(part))
-    .filter((part) => part.length >= 4 && part.length <= 80);
+    .map((part) => normalizeKeyword(part))
+    .filter((part) => {
+      const words = part.split(" ");
+
+      return words.length >= 2 && words.length <= 6;
+    });
 
   candidates.push(...titleParts);
 
@@ -290,7 +461,7 @@ function extractTitlePhrases(title: string) {
       .match(/[a-zA-Z0-9]+/g)
       ?.filter((token) => token.length > 1) || [];
 
-  for (let size = 2; size <= 4; size += 1) {
+  for (let size = 2; size <= 5; size += 1) {
     for (let index = 0; index <= tokens.length - size; index += 1) {
       const gram = tokens.slice(index, index + size);
 
@@ -305,20 +476,94 @@ function extractTitlePhrases(title: string) {
   return candidates;
 }
 
+function findSeedsInText(text: string, seeds: string[]) {
+  const normalized = normalizeKeyword(text);
+
+  return seeds.filter((seed) => normalized.includes(seed));
+}
+
+function extractCompositeClusters(video: CompetitorVideo) {
+  const title = video.title || "";
+  const theme = normalizeKeyword(video.theme || "");
+  const ideaType = normalizeKeyword(video.idea_type || "");
+  const hookType = normalizeKeyword(video.hook_type || "");
+
+  const titleThemes = findSeedsInText(title, themeSeeds);
+  const titleStatuses = findSeedsInText(title, statusSeeds);
+  const titleActions = findSeedsInText(title, actionSeeds);
+
+  const allThemes = Array.from(
+    new Set([theme, ...titleThemes].filter(Boolean))
+  );
+
+  const allStatuses = Array.from(
+    new Set([ideaType, ...titleStatuses].filter(Boolean))
+  );
+
+  const allActions = Array.from(
+    new Set([hookType, ...titleActions].filter(Boolean))
+  );
+
+  const clusters: string[] = [];
+
+  allThemes.forEach((themeItem) => {
+    allStatuses.forEach((statusItem) => {
+      clusters.push(`${statusItem} ${themeItem}`);
+    });
+
+    allActions.forEach((actionItem) => {
+      clusters.push(`${themeItem} ${actionItem}`);
+    });
+
+    allStatuses.forEach((statusItem) => {
+      allActions.forEach((actionItem) => {
+        clusters.push(`${statusItem} ${themeItem} ${actionItem}`);
+      });
+    });
+  });
+
+  return clusters;
+}
+
 function extractCandidates(video: CompetitorVideo) {
   const candidates: CandidateKeyword[] = [];
   const title = video.title || "";
 
-  addCandidate(candidates, video.theme, "Theme", "theme");
-  addCandidate(candidates, video.idea_type, "Idea Type", "idea_type");
-  addCandidate(candidates, video.hook_type, "Hook", "hook_type");
+  addCandidate(
+    candidates,
+    video.theme,
+    "Theme Cluster",
+    "theme",
+    1.15
+  );
+
+  extractCompositeClusters(video).forEach((cluster) => {
+    addCandidate(
+      candidates,
+      cluster,
+      detectKeywordCategory(cluster),
+      "composite_cluster",
+      1.55
+    );
+  });
 
   extractKnownPatterns(title).forEach((pattern) => {
     addCandidate(
       candidates,
       pattern,
       detectKeywordCategory(pattern),
-      "known_pattern"
+      "known_pattern",
+      1.5
+    );
+  });
+
+  extractVsPatterns(title).forEach((pattern) => {
+    addCandidate(
+      candidates,
+      pattern,
+      "Contrast Combo",
+      "vs_pattern",
+      1.45
     );
   });
 
@@ -327,13 +572,20 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectKeywordCategory(phrase),
-      "title_phrase"
+      "title_phrase",
+      1
     );
   });
 
   if (Array.isArray(video.tags)) {
     video.tags.slice(0, 12).forEach((tag) => {
-      addCandidate(candidates, tag, "Tag", "youtube_tag");
+      addCandidate(
+        candidates,
+        tag,
+        detectKeywordCategory(tag),
+        "youtube_tag",
+        0.75
+      );
     });
   }
 
@@ -342,7 +594,11 @@ function extractCandidates(video: CompetitorVideo) {
   candidates.forEach((candidate) => {
     const slug = slugifyKeyword(candidate.keyword);
 
-    if (!unique.has(slug)) {
+    if (!slug) return;
+
+    const existing = unique.get(slug);
+
+    if (!existing || candidate.qualityWeight > existing.qualityWeight) {
       unique.set(slug, candidate);
     }
   });
@@ -350,10 +606,7 @@ function extractCandidates(video: CompetitorVideo) {
   return Array.from(unique.values());
 }
 
-function updateDateMax(
-  current: string | null,
-  next: string | null
-) {
+function updateDateMax(current: string | null, next: string | null) {
   if (!next) return current;
   if (!current) return next;
 
@@ -362,10 +615,7 @@ function updateDateMax(
     : current;
 }
 
-function updateDateMin(
-  current: string | null,
-  next: string | null
-) {
+function updateDateMin(current: string | null, next: string | null) {
   if (!next) return current;
   if (!current) return next;
 
@@ -374,7 +624,18 @@ function updateDateMin(
     : current;
 }
 
-function calculateScores(aggregate: KeywordAggregate) {
+function normalizedLog(value: number, maxValue: number) {
+  if (value <= 0 || maxValue <= 0) return 0;
+
+  return Math.round(
+    (Math.log10(value + 1) / Math.log10(maxValue + 1)) * 100
+  );
+}
+
+function calculateScores(
+  aggregate: KeywordAggregate,
+  benchmarks: ScoreBenchmarks
+) {
   const videoCount = aggregate.videoIds.size;
   const channelCount = aggregate.channelIds.size;
 
@@ -386,48 +647,63 @@ function calculateScores(aggregate: KeywordAggregate) {
       )
     : 365;
 
-  const trafficScore = Math.min(
-    100,
-    Math.round(Math.log10(aggregate.totalViews + 1) * 18)
+  const trafficScore = normalizedLog(
+    aggregate.totalViews,
+    benchmarks.maxTotalViews
   );
 
-  const velocityScore = Math.min(
-    100,
-    Math.round(Math.log10(aggregate.totalViewsPerDay + 1) * 24)
+  const velocityScore = normalizedLog(
+    aggregate.totalViewsPerDay,
+    benchmarks.maxViewsPerDay
   );
 
-  const densityScore = Math.min(
-    35,
-    Math.round(Math.log10(videoCount + 1) * 18)
+  const usageScore = normalizedLog(
+    videoCount,
+    benchmarks.maxVideoCount
   );
 
-  const spreadScore = Math.min(
-    25,
-    Math.round(Math.log10(channelCount + 1) * 15)
+  const spreadScore = normalizedLog(
+    channelCount,
+    benchmarks.maxChannelCount
   );
 
   const recencyScore = Math.max(
     0,
-    Math.round(25 - Math.min(25, latestAgeDays / 2))
+    Math.round(100 - Math.min(100, latestAgeDays * 2))
+  );
+
+  const averageQuality =
+    videoCount > 0 ? aggregate.qualityWeightSum / videoCount : 1;
+
+  const qualityScore = Math.min(
+    100,
+    Math.round(averageQuality * 55)
   );
 
   const trendScore = Math.min(
     100,
     Math.round(
-      trafficScore * 0.3 +
-        velocityScore * 0.35 +
-        densityScore +
-        spreadScore +
-        recencyScore
+      trafficScore * 0.25 +
+        velocityScore * 0.3 +
+        usageScore * 0.15 +
+        spreadScore * 0.1 +
+        recencyScore * 0.1 +
+        qualityScore * 0.1
     )
   );
 
+  const saturationPenalty = Math.min(35, videoCount * 0.6);
+
   const opportunityScore = Math.min(
     100,
-    Math.round(
-      trendScore * 0.65 +
-        Math.min(20, videoCount * 2) +
-        Math.min(15, channelCount * 3)
+    Math.max(
+      0,
+      Math.round(
+        trendScore * 0.55 +
+          velocityScore * 0.25 +
+          qualityScore * 0.25 -
+          saturationPenalty
+      )
     )
   );
 
@@ -490,6 +766,7 @@ export async function POST() {
             latestPublishedAt: null,
             firstSeenAt: null,
             lastSeenAt: null,
+            qualityWeightSum: 0,
             matches: [],
           });
         }
@@ -513,6 +790,7 @@ export async function POST() {
         aggregate.totalViews += views;
         aggregate.maxViews = Math.max(aggregate.maxViews, views);
         aggregate.totalViewsPerDay += viewsPerDay;
+        aggregate.qualityWeightSum += candidate.qualityWeight;
 
         aggregate.latestPublishedAt = updateDateMax(
           aggregate.latestPublishedAt,
@@ -549,19 +827,47 @@ export async function POST() {
       });
     });
 
-    const keywordAggregates = Array.from(aggregates.values())
-      .filter((aggregate) => {
+    const rawAggregates = Array.from(aggregates.values()).filter(
+      (aggregate) => {
         return (
           aggregate.videoIds.size >= 2 ||
           aggregate.totalViews >= 50000 ||
           aggregate.totalViewsPerDay >= 5000
         );
-      })
-      .sort((a, b) => {
-        const scoreA = calculateScores(a).trendScore;
-        const scoreB = calculateScores(b).trendScore;
+      }
+    );
 
-        return scoreB - scoreA;
+    const benchmarks: ScoreBenchmarks = {
+      maxTotalViews: Math.max(
+        1,
+        ...rawAggregates.map((item) => item.totalViews)
+      ),
+      maxViewsPerDay: Math.max(
+        1,
+        ...rawAggregates.map((item) => item.totalViewsPerDay)
+      ),
+      maxVideoCount: Math.max(
+        1,
+        ...rawAggregates.map((item) => item.videoIds.size)
+      ),
+      maxChannelCount: Math.max(
+        1,
+        ...rawAggregates.map((item) => item.channelIds.size)
+      ),
+    };
+
+    const keywordAggregates = rawAggregates
+      .sort((a, b) => {
+        const scoreA = calculateScores(a, benchmarks);
+        const scoreB = calculateScores(b, benchmarks);
+
+        const finalA =
+          scoreA.trendScore * 0.7 + scoreA.opportunityScore * 0.3;
+
+        const finalB =
+          scoreB.trendScore * 0.7 + scoreB.opportunityScore * 0.3;
+
+        return finalB - finalA;
       })
       .slice(0, 500);
 
@@ -576,7 +882,7 @@ export async function POST() {
       .neq("id", 0);
 
     const keywordRows = keywordAggregates.map((aggregate, index) => {
-      const scores = calculateScores(aggregate);
+      const scores = calculateScores(aggregate, benchmarks);
       const videoCount = aggregate.videoIds.size;
       const avgViews =
         videoCount > 0 ? aggregate.totalViews / videoCount : 0;
@@ -605,7 +911,7 @@ export async function POST() {
         opportunity_score: scores.opportunityScore,
 
         keyword_rank: index + 1,
-        source: "competitor_videos",
+        source: "competitor_videos_smart_clusters",
         last_refreshed_at: new Date().toISOString(),
       };
     });
@@ -679,7 +985,7 @@ export async function POST() {
       keywordCount: keywordRows.length,
       matchCount: matchRows.length,
       videoCount: safeVideos.length,
-      message: `Refreshed ${keywordRows.length} keywords from ${safeVideos.length} competitor videos.`,
+      message: `Smart Radar refreshed ${keywordRows.length} SEO keyword clusters from ${safeVideos.length} competitor videos.`,
     });
   } catch (error) {
     const message =

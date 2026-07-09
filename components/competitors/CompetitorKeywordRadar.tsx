@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   ExternalLink,
+  Flame,
   ImageIcon,
   RefreshCw,
   Search,
+  Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -70,7 +72,7 @@ type SortKey =
   | "opportunity_score"
   | "latest";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
 
 function formatNumber(value: number | null | undefined) {
   return Number(value || 0).toLocaleString("en-US");
@@ -85,6 +87,100 @@ function formatDate(value: string | null | undefined) {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(value));
+}
+
+function getRankTier(rank: number | null | undefined) {
+  const safeRank = Number(rank || 9999);
+
+  if (safeRank <= 3) {
+    return {
+      label: "Hot",
+      icon: "🔥",
+      row: "bg-red-50/70 border-l-4 border-red-500",
+      badge: "bg-red-100 text-red-700 border-red-200",
+    };
+  }
+
+  if (safeRank <= 10) {
+    return {
+      label: "Top 10",
+      icon: "⚡",
+      row: "bg-orange-50/70 border-l-4 border-orange-400",
+      badge: "bg-orange-100 text-orange-700 border-orange-200",
+    };
+  }
+
+  if (safeRank <= 30) {
+    return {
+      label: "Rising",
+      icon: "📈",
+      row: "bg-purple-50/60 border-l-4 border-purple-400",
+      badge: "bg-purple-100 text-purple-700 border-purple-200",
+    };
+  }
+
+  return {
+    label: "Watch",
+    icon: "👀",
+    row: "border-l-4 border-transparent",
+    badge: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  };
+}
+
+function getCategoryStyle(category: string | null) {
+  const text = category || "SEO Phrase";
+
+  if (text.includes("Contrast")) {
+    return "bg-pink-100 text-pink-700 border-pink-200";
+  }
+
+  if (text.includes("Transformation")) {
+    return "bg-purple-100 text-purple-700 border-purple-200";
+  }
+
+  if (text.includes("Status")) {
+    return "bg-amber-100 text-amber-700 border-amber-200";
+  }
+
+  if (text.includes("Theme")) {
+    return "bg-blue-100 text-blue-700 border-blue-200";
+  }
+
+  if (text.includes("Challenge")) {
+    return "bg-green-100 text-green-700 border-green-200";
+  }
+
+  if (text.includes("Locale")) {
+    return "bg-cyan-100 text-cyan-700 border-cyan-200";
+  }
+
+  return "bg-zinc-100 text-zinc-700 border-zinc-200";
+}
+
+function ScoreBar({
+  value,
+  label,
+}: {
+  value: number;
+  label: string;
+}) {
+  const safeValue = Math.max(0, Math.min(100, Number(value || 0)));
+
+  return (
+    <div>
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>{label}</span>
+        <span>{safeValue}</span>
+      </div>
+
+      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-zinc-900"
+          style={{ width: `${safeValue}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function CompetitorKeywordRadar() {
@@ -298,64 +394,75 @@ export default function CompetitorKeywordRadar() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-sm text-gray-500">Tracked Keywords</p>
-          <p className="text-3xl font-bold mt-2">
-            {formatNumber(keywords.length)}
-          </p>
+      <div className="rounded-3xl bg-zinc-950 text-white p-7 shadow">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm">
+              <Sparkles size={16} />
+              Smart SEO Research
+            </div>
+
+            <h2 className="text-3xl font-bold mt-4">
+              Keyword Radar
+            </h2>
+
+            <p className="text-zinc-300 mt-2 max-w-3xl">
+              Find rising keyword clusters from competitor videos. Generic single-word tags are filtered out. Prioritize SEO phrases, theme clusters, contrast combos and transformation hooks.
+            </p>
+          </div>
+
+          <button
+            onClick={handleRefreshKeywords}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 bg-white text-zinc-900 px-5 py-3 rounded-xl hover:bg-zinc-100 disabled:opacity-50"
+          >
+            <RefreshCw
+              size={18}
+              className={refreshing ? "animate-spin" : ""}
+            />
+            {refreshing ? "Refreshing..." : "Refresh Keywords"}
+          </button>
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-sm text-gray-500">Internal Traffic Volume</p>
-          <p className="text-3xl font-bold mt-2">
-            {formatNumber(totalInternalViews)}
-          </p>
-        </div>
+        <div className="grid grid-cols-4 gap-4 mt-7">
+          <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
+            <p className="text-sm text-zinc-300">SEO Clusters</p>
+            <p className="text-3xl font-bold mt-2">
+              {formatNumber(keywords.length)}
+            </p>
+          </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-sm text-gray-500">Top Keyword</p>
-          <p className="text-2xl font-bold mt-2 truncate">
-            {topKeyword?.keyword || "-"}
-          </p>
-        </div>
+          <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
+            <p className="text-sm text-zinc-300">Internal Traffic</p>
+            <p className="text-3xl font-bold mt-2">
+              {formatNumber(totalInternalViews)}
+            </p>
+          </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-sm text-gray-500">Last Refresh</p>
-          <p className="text-xl font-bold mt-2">
-            {formatDate(lastRefreshedAt)}
-          </p>
+          <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
+            <p className="text-sm text-zinc-300">Top Keyword</p>
+            <p className="text-2xl font-bold mt-2 truncate">
+              {topKeyword?.keyword || "-"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white/10 border border-white/10 p-5">
+            <p className="text-sm text-zinc-300">Last Refresh</p>
+            <p className="text-xl font-bold mt-2">
+              {formatDate(lastRefreshedAt)}
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow overflow-hidden">
         <div className="p-6 border-b">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <TrendingUp size={22} className="text-purple-600" />
+          <div className="flex items-center gap-2">
+            <TrendingUp size={22} className="text-purple-600" />
 
-                <h2 className="text-xl font-bold">
-                  Keyword Radar
-                </h2>
-              </div>
-
-              <p className="text-sm text-gray-500 mt-1">
-                Detect rising keywords from synced competitor videos, rank them by traffic, velocity and usage frequency.
-              </p>
-            </div>
-
-            <button
-              onClick={handleRefreshKeywords}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-3 rounded-xl hover:bg-zinc-800 disabled:opacity-50"
-            >
-              <RefreshCw
-                size={18}
-                className={refreshing ? "animate-spin" : ""}
-              />
-              {refreshing ? "Refreshing..." : "Refresh Keywords"}
-            </button>
+            <h3 className="text-xl font-bold">
+              Ranked Keyword Clusters
+            </h3>
           </div>
 
           <div className="grid grid-cols-5 gap-3 mt-6">
@@ -368,7 +475,7 @@ export default function CompetitorKeywordRadar() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search keywords..."
+                placeholder="Search keyword clusters..."
                 className="border rounded-xl pl-9 pr-4 py-2 w-full"
               />
             </div>
@@ -390,11 +497,11 @@ export default function CompetitorKeywordRadar() {
               onChange={(event) => setTopLimit(event.target.value)}
               className="border rounded-xl px-4 py-2"
             >
-              <option value="10">Top 10 Keywords</option>
-              <option value="20">Top 20 Keywords</option>
-              <option value="50">Top 50 Keywords</option>
-              <option value="100">Top 100 Keywords</option>
-              <option value="500">Top 500 Keywords</option>
+              <option value="10">Top 10</option>
+              <option value="20">Top 20</option>
+              <option value="50">Top 50</option>
+              <option value="100">Top 100</option>
+              <option value="500">Top 500</option>
             </select>
 
             <select
@@ -404,7 +511,7 @@ export default function CompetitorKeywordRadar() {
               }
               className="border rounded-xl px-4 py-2"
             >
-              <option value="rank">Default Rank</option>
+              <option value="rank">Smart Rank</option>
               <option value="trend_score">Trend Score</option>
               <option value="total_views">Traffic Volume</option>
               <option value="views_per_day">Views/day</option>
@@ -440,14 +547,14 @@ export default function CompetitorKeywordRadar() {
           )}
         </div>
 
-        <div className="grid grid-cols-[1.4fr_1fr]">
+        <div className="grid grid-cols-[1.45fr_1fr]">
           <div className="border-r overflow-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
                   <th className="text-left p-4">Rank</th>
-                  <th className="text-left p-4">Keyword</th>
-                  <th className="text-left p-4">Category</th>
+                  <th className="text-left p-4">Keyword Cluster</th>
+                  <th className="text-left p-4">Type</th>
                   <th className="text-left p-4">Videos</th>
                   <th className="text-left p-4">Channels</th>
                   <th className="text-left p-4">Traffic</th>
@@ -474,6 +581,9 @@ export default function CompetitorKeywordRadar() {
                     const isSelected =
                       selectedKeyword?.id === keyword.id;
 
+                    const tier = getRankTier(keyword.keyword_rank);
+                    const categoryStyle = getCategoryStyle(keyword.category);
+
                     return (
                       <tr
                         key={keyword.id}
@@ -481,15 +591,24 @@ export default function CompetitorKeywordRadar() {
                         className={`border-t cursor-pointer ${
                           isSelected
                             ? "bg-purple-50"
-                            : "hover:bg-gray-50"
+                            : tier.row
                         }`}
                       >
-                        <td className="p-4 font-semibold">
-                          #{keyword.keyword_rank || "-"}
+                        <td className="p-4">
+                          <div
+                            className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-bold ${tier.badge}`}
+                          >
+                            <span>{tier.icon}</span>
+                            #{keyword.keyword_rank || "-"}
+                          </div>
+
+                          <div className="text-xs text-gray-400 mt-2">
+                            {tier.label}
+                          </div>
                         </td>
 
                         <td className="p-4">
-                          <div className="font-bold">
+                          <div className="font-bold text-base">
                             {keyword.keyword}
                           </div>
 
@@ -499,8 +618,10 @@ export default function CompetitorKeywordRadar() {
                         </td>
 
                         <td className="p-4">
-                          <span className="px-3 py-1 rounded-full bg-zinc-100 text-zinc-700">
-                            {keyword.category || "Keyword"}
+                          <span
+                            className={`px-3 py-1 rounded-full border text-xs font-medium ${categoryStyle}`}
+                          >
+                            {keyword.category || "SEO Phrase"}
                           </span>
                         </td>
 
@@ -541,7 +662,7 @@ export default function CompetitorKeywordRadar() {
                       colSpan={9}
                       className="p-8 text-center text-gray-500"
                     >
-                      No keywords yet. Click Refresh Keywords.
+                      No keyword clusters yet. Click Refresh Keywords.
                     </td>
                   </tr>
                 )}
@@ -590,19 +711,44 @@ export default function CompetitorKeywordRadar() {
 
             {selectedKeyword && (
               <div className="bg-white rounded-2xl border p-4 mb-4">
-                <p className="text-xs uppercase text-gray-500 font-semibold">
-                  Selected Keyword
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase text-gray-500 font-semibold">
+                      Selected Cluster
+                    </p>
 
-                <p className="text-2xl font-bold mt-1">
-                  {selectedKeyword.keyword}
-                </p>
+                    <p className="text-2xl font-bold mt-1">
+                      {selectedKeyword.keyword}
+                    </p>
+                  </div>
 
-                <p className="text-sm text-gray-500 mt-2">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                    <Flame size={22} />
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-500 mt-3">
                   {formatNumber(selectedKeyword.video_count)} videos ·{" "}
                   {formatNumber(selectedKeyword.total_views)} views · Trend{" "}
                   {Number(selectedKeyword.trend_score || 0)}
                 </p>
+
+                <div className="space-y-3 mt-4">
+                  <ScoreBar
+                    label="Traffic"
+                    value={Number(selectedKeyword.traffic_score || 0)}
+                  />
+
+                  <ScoreBar
+                    label="Velocity"
+                    value={Number(selectedKeyword.velocity_score || 0)}
+                  />
+
+                  <ScoreBar
+                    label="Opportunity"
+                    value={Number(selectedKeyword.opportunity_score || 0)}
+                  />
+                </div>
               </div>
             )}
 
@@ -655,7 +801,7 @@ export default function CompetitorKeywordRadar() {
 
               {selectedMatches.length === 0 && (
                 <div className="bg-white rounded-2xl border p-6 text-sm text-gray-500">
-                  Select a keyword to see which videos and channels use it.
+                  Select a keyword cluster to see which videos and channels use it.
                 </div>
               )}
             </div>
