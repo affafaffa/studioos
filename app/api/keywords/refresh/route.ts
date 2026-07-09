@@ -81,52 +81,42 @@ const bannedBrandPhrases = [
   "official channel",
 ];
 
-const urlNoiseWords = new Set([
+const hardBadWords = [
   "http",
   "https",
   "www",
   "com",
-  "net",
-  "org",
-  "co",
-  "io",
-  "app",
-  "tv",
-  "me",
-  "vn",
   "youtube",
   "youtubecom",
   "youtu",
-  "youtu.be",
-  "watch",
   "playlist",
-  "playlists",
-  "list",
-  "shorts",
   "subscribe",
-  "subscribed",
   "channel",
-  "channels",
-  "facebook",
-  "instagram",
-  "tiktok",
-  "twitter",
-  "xcom",
-]);
+  "movie",
+  "movies",
+  "recap",
+  "story",
+  "stories",
+  "english english",
+  "full movies",
+  "diy",
+  "comedy",
+  "hermano",
+  "hermana",
+  "chico",
+  "chica",
+  "sibling",
+  "brother",
+  "sister",
+  "enemy",
+  "enemigo",
+];
 
 const bannedStandaloneKeywords = new Set([
   "baby doll",
   "doll",
-  "story",
-  "stories",
-  "visual story",
-  "contrast",
-  "movie",
-  "recap",
-  "comedy",
-  "challenge",
-  "makeover",
-  "transformation",
+  "school",
+  "food",
   "vampire",
   "princess",
   "mermaid",
@@ -136,200 +126,26 @@ const bannedStandaloneKeywords = new Set([
   "rich",
   "poor",
   "giga rich",
-  "school",
-  "food",
-]);
-
-const bannedBadPhrases = [
-  "school https",
-  "https www",
-  "www youtube",
-  "youtube com",
-  "youtube playlist",
-  "youtube com playlist",
-  "school https www youtube com",
-  "school https www youtube com playlist",
-  "de la school",
-  "sobre la school",
-  "la school",
-  "school youtube",
-  "school www",
-  "school com",
-  "school se lev",
-  "playlist list",
-  "watch v",
-  "share subscribe",
-  "subscribe channel",
-  "visual story",
-  "story tim tin",
-  "story multi do",
-  "story troom",
-  "party secret",
-  "mo colarse",
-  "colarse party",
-  "convierte vampire mo",
-  "hermano vs hermana",
-  "hermano vs hermano",
-  "brother vs sister",
-  "brother vs brother",
-  "enemy brother",
-  "enemigo hermano",
-  "chico vs chica",
-  "boy vs girl",
-  "kid vs kid",
-  "sibling vs sibling",
-];
-
-const stopWords = new Set([
-  "the",
-  "a",
-  "an",
-  "and",
-  "or",
-  "but",
-  "for",
-  "to",
-  "of",
-  "in",
-  "on",
-  "with",
-  "without",
-  "from",
-  "into",
-  "by",
-  "at",
-  "is",
-  "are",
-  "was",
-  "were",
-  "be",
-  "been",
-  "this",
-  "that",
-  "these",
-  "those",
-  "who",
-  "what",
-  "when",
-  "where",
-  "why",
-  "how",
-  "new",
-  "full",
-  "episode",
-  "video",
-  "official",
-  "channel",
-  "el",
-  "la",
-  "los",
-  "las",
-  "un",
-  "una",
-  "unos",
-  "unas",
-  "de",
-  "del",
-  "y",
-  "o",
-  "en",
-  "con",
-  "sin",
-  "por",
-  "para",
-  "que",
-  "se",
-  "su",
-  "sus",
-  "mi",
-  "mis",
-  "tu",
-  "tus",
-  "como",
-  "quien",
-  "cuando",
-  "donde",
-]);
-
-const weakWords = new Set([
-  "story",
-  "stories",
-  "visual",
-  "animation",
-  "cartoon",
-  "comedy",
-  "movie",
-  "recap",
-  "contrast",
-  "official",
-  "channel",
-  "girl",
-  "boy",
-  "girls",
-  "boys",
-  "video",
-  "episode",
-  "funny",
-  "kids",
-  "new",
-  "full",
-  "school",
-  "brother",
-  "sister",
-  "sibling",
-  "hermano",
-  "hermana",
-  "chico",
-  "chica",
-  "enemy",
-  "enemigo",
-]);
-
-const strongSignalWords = [
-  "vs",
-  "rich",
-  "poor",
-  "giga",
-  "gold",
-  "trash",
-  "diamond",
-  "broken",
-  "broke",
+  "challenge",
   "makeover",
   "transformation",
-  "glow",
-  "challenge",
-  "contest",
-  "battle",
-  "secret",
-  "room",
-  "build",
-  "built",
-  "kpop",
-  "demon",
-  "hunters",
+  "movie",
+  "recap",
+]);
+
+const trendEntities = [
+  "kpop demon hunters",
+  "demon hunters",
   "huntrix",
-  "princess",
-  "mermaid",
-  "vampire",
-  "baby",
-  "doll",
-  "party",
-  "fashion",
-  "beauty",
-  "arabic",
-  "spanish",
-  "24",
-  "hours",
 ];
 
-const themeWords = [
+const themes = [
   "baby doll",
   "princess",
   "mermaid",
   "vampire",
-  "demon hunters",
   "kpop demon hunters",
+  "demon hunters",
   "huntrix",
   "angel",
   "demon",
@@ -339,7 +155,7 @@ const themeWords = [
   "zombie",
 ];
 
-const actionWords = [
+const actions = [
   "makeover",
   "transformation",
   "glow up",
@@ -349,23 +165,45 @@ const actionWords = [
   "beauty contest",
   "fashion show",
   "secret room",
+  "secret room challenge",
   "secret party",
   "party",
   "wedding",
   "battle",
   "24 hours",
+  "food challenge 24 hours",
 ];
 
-const phraseProtectionPatterns = [
-  /(?:poor|rich|giga rich|broke|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|broke|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/g,
-  /(?:kpop|k pop|k-pop)\s+demon\s+hunters/g,
-  /demon\s+hunters/g,
-  /huntrix(?:\s+[a-z0-9]+){0,3}/g,
-  /(?:we\s+)?(?:build|built|make|made|create|created)\s+(?:a\s+)?secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)/g,
-  /secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)(?:\s+challenge)?/g,
-  /(?:princess|mermaid|vampire|baby doll|huntrix|kpop demon hunters)\s+(?:makeover|transformation|challenge|contest|party|secret party|dance contest|beauty contest|fashion show)/g,
-  /(?:arabic|spanish|hindi|korean|english|portuguese|french)\s+(?:baby doll|princess|mermaid|vampire)/g,
-  /(?:food|secret room)\s+challenge\s+24\s+hours/g,
+const localeWords = [
+  "arabic",
+  "spanish",
+  "hindi",
+  "korean",
+  "english",
+  "portuguese",
+  "french",
+];
+
+const fromToStartWords = [
+  "nerd",
+  "poor",
+  "broke",
+  "ugly",
+  "unpopular",
+  "normal",
+  "bad",
+  "homeless",
+];
+
+const fromToEndWords = [
+  "popular",
+  "rich",
+  "princess",
+  "beautiful",
+  "queen",
+  "famous",
+  "good",
+  "millionaire",
 ];
 
 function stripUrls(value: string) {
@@ -412,8 +250,15 @@ function canonicalizeForeignText(value: string) {
     .replace(/concurso\s+de\s+belleza/g, " beauty contest ")
     .replace(/desfile\s+de\s+moda/g, " fashion show ")
 
+    .replace(/de\s+nerd\s+a\s+popular/g, " from nerd to popular ")
+    .replace(/de\s+pobre\s+a\s+rica/g, " from poor to rich ")
+    .replace(/de\s+pobre\s+a\s+rico/g, " from poor to rich ")
+    .replace(/de\s+fea\s+a\s+popular/g, " from ugly to popular ")
+    .replace(/de\s+feo\s+a\s+popular/g, " from ugly to popular ")
+
     .replace(/\brico\b|\brica\b|\bricos\b|\bricas\b/g, " rich ")
     .replace(/\bpobre\b|\bpobres\b/g, " poor ")
+    .replace(/\bbroke\b/g, " poor ")
     .replace(/\bvampira\b|\bvampiro\b|\bvampiros\b|\bvampiras\b/g, " vampire ")
     .replace(/\bsirena\b|\bsirenas\b/g, " mermaid ")
     .replace(/\bprincesa\b|\bprincesas\b/g, " princess ")
@@ -423,12 +268,11 @@ function canonicalizeForeignText(value: string) {
     .replace(/\bconcurso\b/g, " contest ")
     .replace(/\bfiesta\b/g, " party ")
     .replace(/\bsecreto\b|\bsecreta\b/g, " secret ")
-    .replace(/\bcuarto\b|\bhabitación\b|\bhabitacion\b/g, " room ")
-    .replace(/\bmagia\b|\bmágica\b|\bmagico\b|\bmágico\b/g, " magic ")
+    .replace(/\bcuarto\b|\bhabitaci[oó]n\b/g, " room ")
+    .replace(/\bmagia\b|\bmágica\b|\bmágico\b/g, " magic ")
     .replace(/\bdorado\b|\bdorada\b/g, " gold ")
     .replace(/\bdiamante\b/g, " diamond ")
     .replace(/\broto\b|\brota\b/g, " broken ")
-    .replace(/\bbroke\b/g, " poor ")
 
     .replace(/\bhermano\b|\bhermana\b|\bhermanos\b|\bhermanas\b/g, " sibling ")
     .replace(/\benemiga\b|\benemigo\b|\benemigos\b|\benemigas\b/g, " enemy ")
@@ -454,34 +298,27 @@ function cleanText(value: string) {
     .trim();
 }
 
-function normalizeForSearch(value: string) {
+function normalize(value: string) {
   return cleanText(removeBrandNoise(canonicalizeForeignText(stripUrls(value))))
     .split(" ")
     .filter(Boolean)
-    .filter((word) => !urlNoiseWords.has(word))
-    .join(" ");
-}
-
-function normalizeForExactScan(value: string) {
-  return cleanText(canonicalizeForeignText(stripUrls(value)))
-    .split(" ")
-    .filter(Boolean)
-    .filter((word) => !urlNoiseWords.has(word))
     .join(" ");
 }
 
 function slugifyKeyword(value: string) {
-  return normalizeForSearch(value)
+  return normalize(value)
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
 function titleCaseKeyword(value: string) {
-  return normalizeForSearch(value)
+  return normalize(value)
     .split(" ")
     .map((word) => {
       if (word === "vs") return "vs";
+      if (word === "to") return "to";
+      if (word === "from") return "From";
       if (word === "kpop") return "Kpop";
       if (word.length <= 2) return word.toUpperCase();
 
@@ -494,160 +331,215 @@ function getPrimaryTitle(title: string) {
   return title.split("|")[0] || title;
 }
 
-function hasBrandNoise(value: string) {
-  const text = normalizeForExactScan(value);
-
-  return bannedBrandPhrases.some((phrase) => text.includes(phrase));
+function includesAny(text: string, items: string[]) {
+  return items.some((item) => text.includes(item));
 }
 
-function hasUrlNoise(value: string) {
-  const keyword = normalizeForSearch(value);
-  const words = keyword.split(" ");
+function hasHardNoise(phrase: string) {
+  const text = normalize(phrase);
 
-  return (
-    words.some((word) => urlNoiseWords.has(word)) ||
-    keyword.includes("youtube") ||
-    keyword.includes("playlist") ||
-    keyword.includes("https") ||
-    keyword.includes("www") ||
-    keyword.includes(" com")
-  );
-}
+  if (!text) return true;
 
-function hasBadPhraseShape(value: string) {
-  const keyword = normalizeForSearch(value);
+  if (includesAny(text, hardBadWords)) return true;
 
-  if (!keyword) return true;
-  if (hasBrandNoise(keyword)) return true;
-  if (hasUrlNoise(keyword)) return true;
+  if (text.includes("school")) {
+    const allowedSchool =
+      text.includes("school makeover") ||
+      text.includes("secret school") ||
+      text.includes("school challenge 24 hours");
 
-  if (
-    keyword.includes("sibling") ||
-    keyword.includes("enemy") ||
-    keyword.includes("kid vs") ||
-    keyword.includes("brother") ||
-    keyword.includes("sister") ||
-    keyword.includes("hermano") ||
-    keyword.includes("hermana") ||
-    keyword.includes("chico") ||
-    keyword.includes("chica")
-  ) {
-    return true;
+    if (!allowedSchool) return true;
   }
 
-  if (keyword.includes("school")) {
-    const validSchool =
-      keyword.includes("school makeover") ||
-      keyword.includes("secret school") ||
-      keyword.includes("school challenge 24 hours");
+  if (text.includes("secret")) {
+    const allowedSecret =
+      text.includes("secret room") ||
+      text.includes("secret house") ||
+      text.includes("secret base") ||
+      text.includes("secret door") ||
+      text.includes("secret school") ||
+      text.includes("secret party") ||
+      text.includes("build a secret") ||
+      text.includes("built a secret");
 
-    if (!validSchool) {
-      return true;
+    if (!allowedSecret) return true;
+  }
+
+  if (text.includes("demon")) {
+    const allowedDemon =
+      text.includes("kpop demon hunters") ||
+      text.includes("demon hunters") ||
+      text.includes("angel vs demon");
+
+    if (!allowedDemon) return true;
+  }
+
+  return false;
+}
+
+function hasTheme(text: string) {
+  const normalized = normalize(text);
+
+  return themes.some((theme) => normalized.includes(theme));
+}
+
+function hasAction(text: string) {
+  const normalized = normalize(text);
+
+  return actions.some((action) => normalized.includes(action));
+}
+
+function findThemes(text: string) {
+  const normalized = normalize(text);
+
+  return themes
+    .filter((theme) => normalized.includes(theme))
+    .sort((a, b) => b.length - a.length);
+}
+
+function findActions(text: string) {
+  const normalized = normalize(text);
+
+  return actions
+    .filter((action) => normalized.includes(action))
+    .sort((a, b) => b.length - a.length);
+}
+
+function findLocales(text: string) {
+  const normalized = normalize(text);
+
+  return localeWords.filter((locale) => normalized.includes(locale));
+}
+
+function detectStatusPhrases(text: string) {
+  const normalized = normalize(text);
+  const phrases: string[] = [];
+
+  if (
+    normalized.includes("poor") &&
+    normalized.includes("rich") &&
+    normalized.includes("giga rich")
+  ) {
+    phrases.push("poor vs rich vs giga rich");
+  }
+
+  if (normalized.includes("poor vs rich")) {
+    phrases.push("poor vs rich");
+  }
+
+  if (normalized.includes("rich vs poor")) {
+    phrases.push("rich vs poor");
+  }
+
+  if (
+    normalized.includes("poor") &&
+    normalized.includes("rich") &&
+    !phrases.includes("poor vs rich") &&
+    !phrases.includes("rich vs poor")
+  ) {
+    phrases.push("rich vs poor");
+  }
+
+  if (normalized.includes("angel vs demon")) {
+    phrases.push("angel vs demon");
+  }
+
+  if (normalized.includes("good vs bad")) {
+    phrases.push("good vs bad");
+  }
+
+  if (normalized.includes("gold vs trash")) {
+    phrases.push("gold vs trash");
+  }
+
+  if (normalized.includes("diamond vs broken")) {
+    phrases.push("diamond vs broken");
+  }
+
+  if (normalized.includes("rich vs broke")) {
+    phrases.push("rich vs poor");
+  }
+
+  return Array.from(new Set(phrases));
+}
+
+function detectFromToPhrases(text: string) {
+  const normalized = normalize(text);
+  const phrases: string[] = [];
+
+  const regex = /from\s+([a-z0-9]+)\s+to\s+([a-z0-9]+)/g;
+  const matches = normalized.matchAll(regex);
+
+  for (const match of matches) {
+    const start = match[1];
+    const end = match[2];
+
+    if (fromToStartWords.includes(start) && fromToEndWords.includes(end)) {
+      phrases.push(`from ${start} to ${end}`);
     }
   }
 
-  return bannedBadPhrases.some((phrase) => keyword.includes(phrase));
+  return Array.from(new Set(phrases));
 }
 
-function hasStrongSignal(value: string) {
-  const text = normalizeForSearch(value);
+function detectSecretBuildPhrases(text: string) {
+  const normalized = normalize(text);
+  const phrases: string[] = [];
 
-  return strongSignalWords.some((word) => text.includes(word));
+  const patterns = [
+    /(?:we\s+)?build\s+a\s+secret\s+(room|house|base|door|school|party)/g,
+    /(?:we\s+)?built\s+a\s+secret\s+(room|house|base|door|school|party)/g,
+    /secret\s+(room|house|base|door|school|party)\s+challenge/g,
+    /secret\s+(room|house|base|door|school|party)/g,
+  ];
+
+  patterns.forEach((pattern) => {
+    const matches = normalized.matchAll(pattern);
+
+    for (const match of matches) {
+      phrases.push(match[0]);
+    }
+  });
+
+  return Array.from(new Set(phrases));
 }
 
-function isWeakStandalone(value: string) {
-  const keyword = normalizeForSearch(value);
-  const words = keyword.split(" ").filter(Boolean);
+function detectTrendEntities(text: string) {
+  const normalized = normalize(text);
 
-  if (bannedStandaloneKeywords.has(keyword)) return true;
-
-  if (words.length === 1) {
-    return !["huntrix"].includes(keyword);
-  }
-
-  const meaningfulWords = words.filter(
-    (word) => !stopWords.has(word) && !weakWords.has(word)
-  );
-
-  return meaningfulWords.length === 0;
+  return trendEntities.filter((entity) => normalized.includes(entity));
 }
 
-function hasTheme(value: string) {
-  const keyword = normalizeForSearch(value);
+function isValidMarketPhrase(phrase: string) {
+  const normalized = normalize(phrase);
+  const words = normalized.split(" ").filter(Boolean);
 
-  return themeWords.some((theme) => keyword.includes(theme));
-}
-
-function hasAction(value: string) {
-  const keyword = normalizeForSearch(value);
-
-  return actionWords.some((action) => keyword.includes(action));
-}
-
-function isAllowedVsPhrase(value: string) {
-  const keyword = normalizeForSearch(value);
-
-  return /(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/.test(
-    keyword
-  );
-}
-
-function isMarketPhrase(value: string) {
-  const keyword = normalizeForSearch(value);
-  const words = keyword.split(" ").filter(Boolean);
-
-  if (hasBadPhraseShape(keyword)) return false;
-  if (isWeakStandalone(keyword)) return false;
+  if (!normalized) return false;
+  if (hasHardNoise(normalized)) return false;
+  if (bannedStandaloneKeywords.has(normalized)) return false;
+  if (words.length < 2 && normalized !== "huntrix") return false;
   if (words.length > 8) return false;
 
-  if (keyword === "huntrix") return true;
-  if (keyword.includes("kpop demon hunters")) return true;
-  if (keyword.includes("demon hunters")) return true;
+  if (normalized === "huntrix") return true;
+  if (normalized.includes("kpop demon hunters")) return true;
+  if (normalized.includes("demon hunters")) return true;
+  if (normalized.includes(" vs ")) return true;
+  if (normalized.startsWith("from ") && normalized.includes(" to ")) return true;
+  if (normalized.includes("secret room")) return true;
+  if (normalized.includes("build a secret")) return true;
+  if (normalized.includes("built a secret")) return true;
 
-  if (keyword.includes(" vs ")) {
-    return isAllowedVsPhrase(keyword);
-  }
+  const hasLocale = localeWords.some((locale) =>
+    normalized.includes(locale)
+  );
 
-  if (keyword.includes("secret")) {
-    const validSecret =
-      keyword.includes("secret room") ||
-      keyword.includes("secret house") ||
-      keyword.includes("secret base") ||
-      keyword.includes("secret door") ||
-      keyword.includes("secret school") ||
-      keyword.includes("secret party") ||
-      keyword.includes("build a secret") ||
-      keyword.includes("built a secret");
-
-    if (!validSecret) return false;
-  }
-
-  if (keyword.includes("demon")) {
-    const validDemon =
-      keyword.includes("kpop demon hunters") ||
-      keyword.includes("demon hunters") ||
-      keyword.includes("angel vs demon");
-
-    if (!validDemon) return false;
-  }
-
-  const hasLocale =
-    keyword.includes("arabic") ||
-    keyword.includes("spanish") ||
-    keyword.includes("hindi") ||
-    keyword.includes("korean");
-
-  if (hasTheme(keyword) && hasAction(keyword)) return true;
-  if (hasLocale && hasTheme(keyword)) return true;
+  if (hasTheme(normalized) && hasAction(normalized)) return true;
+  if (hasLocale && hasTheme(normalized)) return true;
 
   if (
-    keyword.includes("food challenge 24 hours") ||
-    keyword.includes("challenge 24 hours")
+    normalized.includes("food challenge 24 hours") ||
+    normalized.includes("challenge 24 hours")
   ) {
-    return true;
-  }
-
-  if (words.length >= 3 && hasStrongSignal(keyword) && hasAction(keyword)) {
     return true;
   }
 
@@ -655,7 +547,7 @@ function isMarketPhrase(value: string) {
 }
 
 function detectCategory(keyword: string) {
-  const text = normalizeForSearch(keyword);
+  const text = normalize(keyword);
 
   if (
     text.includes("kpop") ||
@@ -663,6 +555,10 @@ function detectCategory(keyword: string) {
     text.includes("huntrix")
   ) {
     return "Trend / Fandom";
+  }
+
+  if (text.includes("from ") && text.includes(" to ")) {
+    return "Transformation Arc";
   }
 
   if (text.includes("secret room") || text.includes("build a secret")) {
@@ -690,34 +586,28 @@ function detectCategory(keyword: string) {
     return "Challenge Cluster";
   }
 
-  if (
-    text.includes("arabic") ||
-    text.includes("spanish") ||
-    text.includes("hindi") ||
-    text.includes("korean")
-  ) {
+  if (localeWords.some((locale) => text.includes(locale))) {
     return "Locale Cluster";
   }
 
-  return "Discovered Phrase";
+  return "Market Phrase";
 }
 
 function addCandidate(
   list: CandidateKeyword[],
   keyword: string | null | undefined,
-  category: string,
   source: string,
   qualityWeight = 1
 ) {
   if (!keyword) return;
 
-  const normalized = normalizeForSearch(keyword);
+  const normalized = normalize(keyword);
 
-  if (!isMarketPhrase(normalized)) return;
+  if (!isValidMarketPhrase(normalized)) return;
 
   list.push({
     keyword: titleCaseKeyword(normalized),
-    category,
+    category: detectCategory(normalized),
     source,
     qualityWeight,
   });
@@ -752,62 +642,57 @@ function getViewsPerDay(video: CompetitorVideo) {
   return views / ageDays;
 }
 
-function extractProtectedPatternPhrases(text: string) {
-  const normalized = normalizeForSearch(text);
+function buildMarketPhrasesFromText(text: string) {
   const phrases: string[] = [];
 
-  phraseProtectionPatterns.forEach((pattern) => {
-    const matches = normalized.match(pattern);
+  const statusPhrases = detectStatusPhrases(text);
+  const fromToPhrases = detectFromToPhrases(text);
+  const secretPhrases = detectSecretBuildPhrases(text);
+  const trends = detectTrendEntities(text);
+  const foundThemes = findThemes(text);
+  const foundActions = findActions(text);
+  const foundLocales = findLocales(text);
 
-    if (matches) {
-      phrases.push(...matches);
-    }
+  phrases.push(...statusPhrases);
+  phrases.push(...fromToPhrases);
+  phrases.push(...secretPhrases);
+  phrases.push(...trends);
+
+  statusPhrases.forEach((status) => {
+    foundThemes.forEach((theme) => {
+      phrases.push(`${status} ${theme}`);
+    });
   });
 
-  return phrases;
-}
+  foundThemes.forEach((theme) => {
+    foundActions.forEach((action) => {
+      phrases.push(`${theme} ${action}`);
+    });
+  });
 
-function extractTitleSegments(title: string) {
-  return title
-    .split(/[|:!?()[\]{}]+/g)
-    .map((part) => normalizeForSearch(part))
-    .filter((part) => isMarketPhrase(part));
-}
+  statusPhrases.forEach((status) => {
+    foundThemes.forEach((theme) => {
+      foundActions.forEach((action) => {
+        phrases.push(`${status} ${theme} ${action}`);
+      });
+    });
+  });
 
-function extractExactNgrams(text: string) {
-  const normalized = normalizeForSearch(text);
+  foundLocales.forEach((locale) => {
+    foundThemes.forEach((theme) => {
+      phrases.push(`${locale} ${theme}`);
+    });
+  });
 
-  const tokens =
-    normalized
-      .match(/[a-z0-9]+/g)
-      ?.filter((token) => token.length > 1 && !urlNoiseWords.has(token)) ||
-    [];
+  trends.forEach((trend) => {
+    foundActions.forEach((action) => {
+      phrases.push(`${trend} ${action}`);
+    });
+  });
 
-  const phrases: string[] = [];
-
-  for (let size = 2; size <= 7; size += 1) {
-    for (let index = 0; index <= tokens.length - size; index += 1) {
-      const phrase = tokens.slice(index, index + size).join(" ");
-
-      if (isMarketPhrase(phrase)) {
-        phrases.push(phrase);
-      }
-    }
-  }
-
-  return phrases;
-}
-
-function extractTagPhrases(tags: string[] | null) {
-  if (!Array.isArray(tags)) return [];
-
-  return tags
-    .map((tag) => normalizeForSearch(tag))
-    .filter((tag) => isMarketPhrase(tag));
-}
-
-function uniqueItems(items: string[]) {
-  return Array.from(new Set(items.map(normalizeForSearch))).filter(Boolean);
+  return Array.from(new Set(phrases.map(normalize))).filter(
+    isValidMarketPhrase
+  );
 }
 
 function extractCandidates(video: CompetitorVideo) {
@@ -817,7 +702,10 @@ function extractCandidates(video: CompetitorVideo) {
   const description = video.description || "";
   const tags = Array.isArray(video.tags) ? video.tags : [];
 
-  const titleAndTags = [title, tags.join(" ")].join(" ");
+  const highSignalText = [
+    title,
+    tags.join(" "),
+  ].join(" ");
 
   const fullText = [
     title,
@@ -825,57 +713,36 @@ function extractCandidates(video: CompetitorVideo) {
     tags.join(" "),
   ].join(" ");
 
-  uniqueItems(extractProtectedPatternPhrases(fullText)).forEach((phrase) => {
+  buildMarketPhrasesFromText(highSignalText).forEach((phrase) => {
     addCandidate(
       candidates,
       phrase,
-      detectCategory(phrase),
-      "english_normalized_protected_phrase",
-      2.3
+      "market_template_title_tags",
+      2.2
     );
   });
 
-  uniqueItems(extractTitleSegments(title)).forEach((phrase) => {
+  buildMarketPhrasesFromText(fullText).forEach((phrase) => {
     addCandidate(
       candidates,
       phrase,
-      detectCategory(phrase),
-      "english_normalized_title_segment",
-      2
+      "market_template_title_description_tags",
+      1.6
     );
   });
 
-  uniqueItems(extractExactNgrams(titleAndTags)).forEach((phrase) => {
-    addCandidate(
-      candidates,
-      phrase,
-      detectCategory(phrase),
-      "english_normalized_ngram_title_tags",
-      1.7
-    );
-  });
+  tags.forEach((tag) => {
+    const normalizedTag = normalize(tag);
 
-  uniqueItems(extractTagPhrases(tags)).forEach((phrase) => {
-    addCandidate(
-      candidates,
-      phrase,
-      detectCategory(phrase),
-      "english_normalized_youtube_tag",
-      1.45
-    );
-  });
-
-  uniqueItems(extractExactNgrams(description.slice(0, 800))).forEach(
-    (phrase) => {
+    if (isValidMarketPhrase(normalizedTag)) {
       addCandidate(
         candidates,
-        phrase,
-        detectCategory(phrase),
-        "english_normalized_description_phrase",
-        0.75
+        normalizedTag,
+        "clean_youtube_tag",
+        1.4
       );
     }
-  );
+  });
 
   const unique = new Map<string, CandidateKeyword>();
 
@@ -1149,28 +1016,28 @@ function getDiscoveryReason({
   viewsGrowth: number;
 }) {
   if (marketStage === "Single-Channel Breakout") {
-    return `Clean English market phrase. High velocity from breakout source: ${Math.round(
+    return `Template market phrase. High velocity from breakout source: ${Math.round(
       viewsPerDay
     ).toLocaleString("en-US")} views/day.`;
   }
 
   if (marketStage === "Accelerating") {
-    return `Clean English market phrase. Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
+    return `Template market phrase. Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
       "en-US"
     )} views.`;
   }
 
   if (marketStage === "Cross-Channel Adoption") {
-    return `Clean English market phrase adopted across ${channelCount} channels and ${videoCount} videos.`;
+    return `Template market phrase adopted across ${channelCount} channels and ${videoCount} videos.`;
   }
 
   if (marketStage === "Rising") {
-    return `Clean English market phrase with ${totalViews.toLocaleString(
+    return `Template market phrase with ${totalViews.toLocaleString(
       "en-US"
     )} internal competitor views.`;
   }
 
-  return "Clean English watchlist phrase from competitor title, description or tags.";
+  return "Template market phrase from competitor title, description or tags.";
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -1466,7 +1333,7 @@ export async function POST() {
 
         market_stage: marketStage,
         keyword_rank: index + 1,
-        source: "keyword_firewall_v8_clean_english_phrases",
+        source: "market_phrase_template_engine_v9",
         last_refreshed_at: new Date().toISOString(),
       };
     });
@@ -1579,7 +1446,7 @@ export async function POST() {
       keywordCount: keywordRows.length,
       matchCount: matchRows.length,
       videoCount: safeVideos.length,
-      message: `Keyword Firewall V8 refreshed ${keywordRows.length} clean English market phrases from ${safeVideos.length} competitor videos. URL, playlist, school-link, and foreign fragment noise were filtered.`,
+      message: `Market Phrase Template Engine refreshed ${keywordRows.length} clean market phrases from ${safeVideos.length} competitor videos. Raw n-gram noise was removed.`,
     });
   } catch (error) {
     const message =
