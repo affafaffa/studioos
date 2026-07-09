@@ -81,6 +81,32 @@ const bannedBrandPhrases = [
   "official channel",
 ];
 
+const urlNoiseWords = new Set([
+  "http",
+  "https",
+  "www",
+  "com",
+  "net",
+  "org",
+  "youtube",
+  "youtu",
+  "youtubecom",
+  "youtu.be",
+  "watch",
+  "playlist",
+  "playlists",
+  "shorts",
+  "subscribe",
+  "subscribed",
+  "channel",
+  "channels",
+  "facebook",
+  "instagram",
+  "tiktok",
+  "twitter",
+  "xcom",
+]);
+
 const bannedStandaloneKeywords = new Set([
   "baby doll",
   "doll",
@@ -103,7 +129,42 @@ const bannedStandaloneKeywords = new Set([
   "rich",
   "poor",
   "giga rich",
+  "school",
+  "food",
 ]);
+
+const bannedBadPhrases = [
+  "school https",
+  "https www",
+  "www youtube",
+  "youtube com",
+  "youtube playlist",
+  "youtube com playlist",
+  "school https www youtube com",
+  "school https www youtube com playlist",
+  "de la school",
+  "school youtube",
+  "playlist list",
+  "watch v",
+  "share subscribe",
+  "subscribe channel",
+  "visual story",
+  "story tim tin",
+  "story multi do",
+  "story troom",
+  "party secret",
+  "mo colarse",
+  "colarse party",
+  "convierte vampire mo",
+  "hermano vs hermana",
+  "hermano vs hermano",
+  "brother vs sister",
+  "brother vs brother",
+  "enemy brother",
+  "enemigo hermano",
+  "chico vs chica",
+  "boy vs girl",
+];
 
 const stopWords = new Set([
   "the",
@@ -145,6 +206,7 @@ const stopWords = new Set([
   "video",
   "official",
   "channel",
+
   "el",
   "la",
   "los",
@@ -198,6 +260,15 @@ const weakWords = new Set([
   "kids",
   "new",
   "full",
+  "school",
+  "brother",
+  "sister",
+  "hermano",
+  "hermana",
+  "chico",
+  "chica",
+  "enemy",
+  "enemigo",
 ]);
 
 const strongSignalWords = [
@@ -228,12 +299,45 @@ const strongSignalWords = [
   "vampire",
   "baby",
   "doll",
-  "school",
   "party",
   "fashion",
   "beauty",
   "arabic",
   "spanish",
+  "24 hours",
+];
+
+const themeWords = [
+  "baby doll",
+  "princess",
+  "mermaid",
+  "vampire",
+  "demon hunters",
+  "kpop demon hunters",
+  "huntrix",
+  "angel",
+  "demon",
+  "queen",
+  "fairy",
+  "witch",
+  "zombie",
+];
+
+const actionWords = [
+  "makeover",
+  "transformation",
+  "glow up",
+  "challenge",
+  "contest",
+  "dance contest",
+  "beauty contest",
+  "fashion show",
+  "secret room",
+  "secret party",
+  "party",
+  "wedding",
+  "battle",
+  "24 hours",
 ];
 
 const phraseProtectionPatterns = [
@@ -243,13 +347,55 @@ const phraseProtectionPatterns = [
   /huntrix(?:\s+[a-z0-9]+){0,3}/g,
   /(?:we\s+)?(?:build|built|make|made|create|created)\s+(?:a\s+)?secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)/g,
   /secret\s+(?:room|house|base|door|school|party|world|pool|tunnel|castle)(?:\s+challenge)?/g,
+  /(?:princess|mermaid|vampire|baby doll|huntrix|kpop demon hunters)\s+(?:makeover|transformation|challenge|contest|party|secret party|dance contest|beauty contest|fashion show)/g,
+  /(?:arabic|spanish|hindi|korean|english|portuguese|french)\s+(?:baby doll|princess|mermaid|vampire)/g,
+  /(?:food|school|secret room)\s+challenge\s+24\s+hours/g,
 ];
 
-function canonicalizeText(value: string) {
+function stripUrls(value: string) {
   return value
-    .toLowerCase()
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/www\.\S+/gi, " ")
+    .replace(/\b\S+\.(com|net|org|co|io|app|tv|me|vn)\S*/gi, " ")
+    .replace(/\b(?:youtu\.be|youtube\.com|m\.youtube\.com)\/\S*/gi, " ");
+}
+
+function canonicalizeForeignText(value: string) {
+  let text = value.toLowerCase();
+
+  text = text
     .replace(/\bk-pop\b/g, " kpop ")
     .replace(/\bk pop\b/g, " kpop ")
+
+    .replace(/cazadores\s+de\s+demonios/g, " demon hunters ")
+    .replace(/cazadoras\s+de\s+demonios/g, " demon hunters ")
+    .replace(/demonios\s+kpop/g, " kpop demon hunters ")
+    .replace(/kpop\s+demonios/g, " kpop demon hunters ")
+
+    .replace(/fiesta\s+secreta\s+de\s+vampiros/g, " vampire secret party ")
+    .replace(/fiesta\s+secreta\s+de\s+vampiras/g, " vampire secret party ")
+    .replace(/fiesta\s+de\s+vampiros/g, " vampire party ")
+    .replace(/fiesta\s+de\s+vampiras/g, " vampire party ")
+    .replace(/colarse\s+en\s+la\s+fiesta\s+secreta\s+de\s+vampiros/g, " vampire secret party ")
+    .replace(/colarse\s+en\s+la\s+fiesta\s+secreta\s+de\s+vampiras/g, " vampire secret party ")
+
+    .replace(/se\s+convierte\s+en\s+vampira/g, " vampire transformation ")
+    .replace(/se\s+convierte\s+en\s+vampiro/g, " vampire transformation ")
+    .replace(/convertirse\s+en\s+vampira/g, " vampire transformation ")
+    .replace(/convertirse\s+en\s+vampiro/g, " vampire transformation ")
+
+    .replace(/construimos\s+una\s+habitaci[oó]n\s+secreta/g, " we build a secret room ")
+    .replace(/construimos\s+un\s+cuarto\s+secreto/g, " we build a secret room ")
+    .replace(/construy[oó]\s+una\s+habitaci[oó]n\s+secreta/g, " built a secret room ")
+    .replace(/habitaci[oó]n\s+secreta/g, " secret room ")
+    .replace(/cuarto\s+secreto/g, " secret room ")
+    .replace(/casa\s+secreta/g, " secret house ")
+    .replace(/puerta\s+secreta/g, " secret door ")
+
+    .replace(/concurso\s+de\s+baile/g, " dance contest ")
+    .replace(/concurso\s+de\s+belleza/g, " beauty contest ")
+    .replace(/desfile\s+de\s+moda/g, " fashion show ")
+
     .replace(/\brico\b|\brica\b|\bricos\b|\bricas\b/g, " rich ")
     .replace(/\bpobre\b|\bpobres\b/g, " poor ")
     .replace(/\bvampira\b|\bvampiro\b|\bvampiros\b|\bvampiras\b/g, " vampire ")
@@ -265,7 +411,13 @@ function canonicalizeText(value: string) {
     .replace(/\bmagia\b|\bmágica\b|\bmagico\b|\bmágico\b/g, " magic ")
     .replace(/\bdorado\b|\bdorada\b/g, " gold ")
     .replace(/\bdiamante\b/g, " diamond ")
-    .replace(/\broto\b|\brota\b/g, " broken ");
+    .replace(/\broto\b|\brota\b/g, " broken ")
+
+    .replace(/\bhermano\b|\bhermana\b|\bhermanos\b|\bhermanas\b/g, " sibling ")
+    .replace(/\benchigo\b|\benemiga\b|\benemigo\b|\benemigos\b|\benemigas\b/g, " enemy ")
+    .replace(/\bchico\b|\bchica\b|\bchicos\b|\bchicas\b/g, " kid ");
+
+  return text;
 }
 
 function removeBrandNoise(value: string) {
@@ -286,16 +438,18 @@ function cleanText(value: string) {
 }
 
 function normalizeForSearch(value: string) {
-  return cleanText(removeBrandNoise(canonicalizeText(value)))
+  return cleanText(removeBrandNoise(canonicalizeForeignText(stripUrls(value))))
     .split(" ")
     .filter(Boolean)
+    .filter((word) => !urlNoiseWords.has(word))
     .join(" ");
 }
 
 function normalizeForExactScan(value: string) {
-  return cleanText(canonicalizeText(value))
+  return cleanText(canonicalizeForeignText(stripUrls(value)))
     .split(" ")
     .filter(Boolean)
+    .filter((word) => !urlNoiseWords.has(word))
     .join(" ");
 }
 
@@ -329,6 +483,22 @@ function hasBrandNoise(value: string) {
   return bannedBrandPhrases.some((phrase) => text.includes(phrase));
 }
 
+function hasUrlNoise(value: string) {
+  const words = normalizeForSearch(value).split(" ");
+
+  return words.some((word) => urlNoiseWords.has(word));
+}
+
+function hasBadPhraseShape(value: string) {
+  const keyword = normalizeForSearch(value);
+
+  if (!keyword) return true;
+  if (hasBrandNoise(keyword)) return true;
+  if (hasUrlNoise(keyword)) return true;
+
+  return bannedBadPhrases.some((phrase) => keyword.includes(phrase));
+}
+
 function hasStrongSignal(value: string) {
   const text = normalizeForSearch(value);
 
@@ -352,21 +522,24 @@ function isWeakStandalone(value: string) {
   return meaningfulWords.length === 0;
 }
 
-function hasBadPhraseShape(value: string) {
+function hasTheme(value: string) {
   const keyword = normalizeForSearch(value);
 
-  if (!keyword) return true;
-  if (hasBrandNoise(keyword)) return true;
-  if (keyword.includes("visual story")) return true;
-  if (keyword.includes("story tim")) return true;
-  if (keyword.includes("story multi")) return true;
-  if (keyword.includes("story troom")) return true;
-  if (keyword.includes("party secret")) return true;
-  if (keyword.includes("mo colarse")) return true;
-  if (keyword.includes("colarse")) return true;
-  if (keyword.includes("convierte")) return true;
+  return themeWords.some((theme) => keyword.includes(theme));
+}
 
-  return false;
+function hasAction(value: string) {
+  const keyword = normalizeForSearch(value);
+
+  return actionWords.some((action) => keyword.includes(action));
+}
+
+function isAllowedVsPhrase(value: string) {
+  const keyword = normalizeForSearch(value);
+
+  return /(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)(?:\s+vs\s+(?:poor|rich|giga rich|gold|trash|diamond|broken|good|bad|angel|demon)){1,3}/.test(
+    keyword
+  );
 }
 
 function isMarketPhrase(value: string) {
@@ -380,6 +553,10 @@ function isMarketPhrase(value: string) {
   if (keyword === "huntrix") return true;
   if (keyword.includes("kpop demon hunters")) return true;
   if (keyword.includes("demon hunters")) return true;
+
+  if (keyword.includes(" vs ")) {
+    return isAllowedVsPhrase(keyword);
+  }
 
   if (keyword.includes("secret")) {
     const validSecret =
@@ -404,38 +581,14 @@ function isMarketPhrase(value: string) {
     if (!validDemon) return false;
   }
 
-  if (keyword.includes(" vs ")) return true;
-
-  const hasTheme =
-    keyword.includes("baby doll") ||
-    keyword.includes("princess") ||
-    keyword.includes("mermaid") ||
-    keyword.includes("vampire") ||
-    keyword.includes("huntrix") ||
-    keyword.includes("kpop") ||
-    keyword.includes("demon hunters") ||
-    keyword.includes("school");
-
-  const hasAction =
-    keyword.includes("makeover") ||
-    keyword.includes("transformation") ||
-    keyword.includes("glow up") ||
-    keyword.includes("challenge") ||
-    keyword.includes("contest") ||
-    keyword.includes("fashion show") ||
-    keyword.includes("beauty contest") ||
-    keyword.includes("secret room") ||
-    keyword.includes("secret party") ||
-    keyword.includes("dance contest");
-
   const hasLocale =
     keyword.includes("arabic") ||
     keyword.includes("spanish") ||
     keyword.includes("hindi") ||
     keyword.includes("korean");
 
-  if (hasTheme && hasAction) return true;
-  if (hasLocale && hasTheme) return true;
+  if (hasTheme(keyword) && hasAction(keyword)) return true;
+  if (hasLocale && hasTheme(keyword)) return true;
 
   if (words.length >= 3 && hasStrongSignal(keyword)) return true;
 
@@ -472,7 +625,8 @@ function detectCategory(keyword: string) {
   if (
     text.includes("contest") ||
     text.includes("challenge") ||
-    text.includes("battle")
+    text.includes("battle") ||
+    text.includes("24 hours")
   ) {
     return "Challenge Cluster";
   }
@@ -554,13 +708,21 @@ function extractProtectedPatternPhrases(text: string) {
   return phrases;
 }
 
+function extractTitleSegments(title: string) {
+  return title
+    .split(/[|:!?()[\]{}]+/g)
+    .map((part) => normalizeForSearch(part))
+    .filter((part) => isMarketPhrase(part));
+}
+
 function extractExactNgrams(text: string) {
   const normalized = normalizeForSearch(text);
 
   const tokens =
     normalized
       .match(/[a-z0-9]+/g)
-      ?.filter((token) => token.length > 1) || [];
+      ?.filter((token) => token.length > 1 && !urlNoiseWords.has(token)) ||
+    [];
 
   const phrases: string[] = [];
 
@@ -583,13 +745,6 @@ function extractTagPhrases(tags: string[] | null) {
   return tags
     .map((tag) => normalizeForSearch(tag))
     .filter((tag) => isMarketPhrase(tag));
-}
-
-function extractTitleSegments(title: string) {
-  return title
-    .split(/[|:!?()[\]{}]+/g)
-    .map((part) => normalizeForSearch(part))
-    .filter((part) => isMarketPhrase(part));
 }
 
 function uniqueItems(items: string[]) {
@@ -616,8 +771,8 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "protected_exact_pattern",
-      2.2
+      "translated_protected_phrase",
+      2.3
     );
   });
 
@@ -626,8 +781,8 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "exact_title_segment",
-      1.9
+      "translated_title_segment",
+      2
     );
   });
 
@@ -636,8 +791,8 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "exact_ngram_title_tags",
-      1.65
+      "translated_ngram_title_tags",
+      1.7
     );
   });
 
@@ -646,7 +801,7 @@ function extractCandidates(video: CompetitorVideo) {
       candidates,
       phrase,
       detectCategory(phrase),
-      "youtube_tag_exact_phrase",
+      "translated_youtube_tag",
       1.45
     );
   });
@@ -657,8 +812,8 @@ function extractCandidates(video: CompetitorVideo) {
         candidates,
         phrase,
         detectCategory(phrase),
-        "description_phrase",
-        0.9
+        "translated_description_phrase",
+        0.85
       );
     }
   );
@@ -751,6 +906,7 @@ function getGrowthMetrics(
   const viewsGrowth = Math.max(0, aggregate.totalViews - previousViews);
 
   const previousTime = new Date(previous.captured_at).getTime();
+
   const ageDays = Math.max(
     1,
     (Date.now() - previousTime) / (1000 * 60 * 60 * 24)
@@ -820,7 +976,8 @@ function calculateScores({
       normalizedLog(
         aggregate.maxVideoViewsPerDay,
         benchmarks.maxSingleVideoViewsPerDay
-      ) * 0.75 +
+      ) *
+        0.75 +
         Math.max(0, 100 - Math.min(100, latestAgeDays * 2)) * 0.25
     )
   );
@@ -837,16 +994,9 @@ function calculateScores({
   const averageQuality =
     videoCount > 0 ? aggregate.qualityWeightSum / videoCount : 1;
 
-  const phraseQualityScore = Math.min(
-    100,
-    Math.round(averageQuality * 45)
-  );
+  const phraseQualityScore = Math.min(100, Math.round(averageQuality * 45));
 
-  const growthMetrics = getGrowthMetrics(
-    aggregate,
-    previous,
-    benchmarks
-  );
+  const growthMetrics = getGrowthMetrics(aggregate, previous, benchmarks);
 
   const trendScore = Math.min(
     100,
@@ -941,28 +1091,28 @@ function getDiscoveryReason({
   viewsGrowth: number;
 }) {
   if (marketStage === "Single-Channel Breakout") {
-    return `High velocity from 1 breakout source: ${Math.round(
+    return `English-normalized phrase from title/description/tags. High velocity from breakout source: ${Math.round(
       viewsPerDay
     ).toLocaleString("en-US")} views/day.`;
   }
 
   if (marketStage === "Accelerating") {
-    return `Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
+    return `English-normalized phrase. Traffic growth detected since last refresh: +${viewsGrowth.toLocaleString(
       "en-US"
     )} views.`;
   }
 
   if (marketStage === "Cross-Channel Adoption") {
-    return `Market adoption detected across ${channelCount} channels and ${videoCount} videos.`;
+    return `English-normalized phrase adopted across ${channelCount} channels and ${videoCount} videos.`;
   }
 
   if (marketStage === "Rising") {
-    return `Rising phrase with ${totalViews.toLocaleString(
+    return `English-normalized phrase with ${totalViews.toLocaleString(
       "en-US"
     )} internal competitor views.`;
   }
 
-  return `Watchlist phrase from competitor title, description or tags.`;
+  return "English-normalized watchlist phrase from competitor title, description or tags.";
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -1004,10 +1154,7 @@ export async function POST() {
     }
 
     const safeVideos = (videosResult.data || []) as CompetitorVideo[];
-
-    const historyRows =
-      (historyResult.data || []) as KeywordHistoryRow[];
-
+    const historyRows = (historyResult.data || []) as KeywordHistoryRow[];
     const latestHistoryMap = getLatestHistoryMap(historyRows);
 
     const aggregates = new Map<string, KeywordAggregate>();
@@ -1061,10 +1208,12 @@ export async function POST() {
 
         aggregate.totalViews += views;
         aggregate.maxViews = Math.max(aggregate.maxViews, views);
+
         aggregate.maxVideoViewsPerDay = Math.max(
           aggregate.maxVideoViewsPerDay,
           viewsPerDay
         );
+
         aggregate.totalViewsPerDay += viewsPerDay;
         aggregate.qualityWeightSum += candidate.qualityWeight;
 
@@ -1259,7 +1408,7 @@ export async function POST() {
 
         market_stage: marketStage,
         keyword_rank: index + 1,
-        source: "dynamic_market_discovery_engine_v6",
+        source: "multilingual_english_normalized_keyword_engine_v7",
         last_refreshed_at: new Date().toISOString(),
       };
     });
@@ -1372,7 +1521,7 @@ export async function POST() {
       keywordCount: keywordRows.length,
       matchCount: matchRows.length,
       videoCount: safeVideos.length,
-      message: `Dynamic Keyword Discovery refreshed ${keywordRows.length} market phrases from ${safeVideos.length} competitor videos. Growth will become stronger after daily refresh history is collected.`,
+      message: `Multilingual Keyword Radar refreshed ${keywordRows.length} English-normalized market phrases from ${safeVideos.length} competitor videos. URL noise and foreign title fragments were filtered.`,
     });
   } catch (error) {
     const message =
