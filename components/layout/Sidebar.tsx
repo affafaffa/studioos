@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   Bot,
@@ -35,7 +36,7 @@ type Props = {
 const navItems: {
   id: ActiveView;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: LucideIcon;
 }[] = [
   {
     id: "dashboard",
@@ -82,7 +83,7 @@ const navItems: {
 const competitorSections: {
   id: CompetitorSection;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: LucideIcon;
   colorClass: string;
 }[] = [
   {
@@ -132,6 +133,28 @@ export default function Sidebar({
     if (savedSection) {
       setActiveCompetitorSection(savedSection);
     }
+
+    function handleSectionChange(event: Event) {
+      const customEvent = event as CustomEvent<{
+        section?: CompetitorSection;
+      }>;
+
+      if (customEvent.detail?.section) {
+        setActiveCompetitorSection(customEvent.detail.section);
+      }
+    }
+
+    window.addEventListener(
+      "studioos-competitor-section-change",
+      handleSectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "studioos-competitor-section-change",
+        handleSectionChange
+      );
+    };
   }, []);
 
   function handleMainClick(view: ActiveView) {
@@ -162,21 +185,19 @@ export default function Sidebar({
       section
     );
 
-    setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent("studioos-competitor-section-change", {
-          detail: {
-            section,
-          },
-        })
-      );
-    }, 30);
+    window.dispatchEvent(
+      new CustomEvent("studioos-competitor-section-change", {
+        detail: {
+          section,
+        },
+      })
+    );
   }
 
   const competitorOpen = activeView === "competitors";
 
   return (
-    <aside className="w-[252px] bg-zinc-950 text-white min-h-screen fixed left-0 top-0 border-r border-zinc-800">
+    <aside className="w-[252px] bg-zinc-950 text-white min-h-screen fixed left-0 top-0 border-r border-zinc-800 z-40">
       <div className="h-16 flex items-center px-6 border-b border-zinc-800">
         <div>
           <h1 className="text-xl font-bold">
@@ -241,7 +262,7 @@ export default function Sidebar({
                         }`}
                       >
                         <SectionIcon
-                          size={15}
+                          size={16}
                           className={section.colorClass}
                         />
 
