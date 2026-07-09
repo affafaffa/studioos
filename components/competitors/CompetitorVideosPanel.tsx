@@ -3,6 +3,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   ExternalLink,
   ImageIcon,
   Pencil,
@@ -34,6 +38,8 @@ type SortKey =
   | "score_desc"
   | "likes_desc"
   | "comments_desc";
+
+const PAGE_SIZE = 30;
 
 function formatNumber(value: number | null | undefined) {
   return Number(value || 0).toLocaleString("en-US");
@@ -424,6 +430,9 @@ export default function CompetitorVideosPanel({
   const [editingVideo, setEditingVideo] =
     useState<CompetitorVideo | null>(null);
 
+  const [showSyncPanel, setShowSyncPanel] = useState(true);
+  const [showVideoTable, setShowVideoTable] = useState(true);
+
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("All");
   const [channelFilter, setChannelFilter] = useState("All");
@@ -433,6 +442,7 @@ export default function CompetitorVideosPanel({
   const [minViews, setMinViews] = useState("");
   const [publishedWindow, setPublishedWindow] = useState("All");
   const [sortKey, setSortKey] = useState<SortKey>("views_desc");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [syncMode, setSyncMode] = useState<"channel" | "group">(
     "channel"
@@ -469,6 +479,20 @@ export default function CompetitorVideosPanel({
     competitorGroups,
     syncChannelId,
     syncGroupId,
+  ]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    groupFilter,
+    channelFilter,
+    themeFilter,
+    ideaTypeFilter,
+    hookTypeFilter,
+    minViews,
+    publishedWindow,
+    sortKey,
   ]);
 
   const groupMap = useMemo(() => {
@@ -647,6 +671,28 @@ export default function CompetitorVideosPanel({
     return Number(b.view_count || 0) - Number(a.view_count || 0);
   });
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedVideos.length / PAGE_SIZE)
+  );
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedVideos = sortedVideos.slice(
+    (safeCurrentPage - 1) * PAGE_SIZE,
+    safeCurrentPage * PAGE_SIZE
+  );
+
+  const pageStart =
+    sortedVideos.length === 0
+      ? 0
+      : (safeCurrentPage - 1) * PAGE_SIZE + 1;
+
+  const pageEnd = Math.min(
+    safeCurrentPage * PAGE_SIZE,
+    sortedVideos.length
+  );
+
   const totalViews = competitorVideos.reduce(
     (sum, video) => sum + Number(video.view_count || 0),
     0
@@ -798,6 +844,14 @@ export default function CompetitorVideosPanel({
     router.refresh();
   }
 
+  function goToPreviousPage() {
+    setCurrentPage((page) => Math.max(1, page - 1));
+  }
+
+  function goToNextPage() {
+    setCurrentPage((page) => Math.min(totalPages, page + 1));
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-6">
@@ -830,8 +884,8 @@ export default function CompetitorVideosPanel({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow p-6">
-        <div className="flex items-start justify-between gap-4">
+      <div className="bg-white rounded-2xl shadow">
+        <div className="p-6 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold">
               Sync Competitor Videos
@@ -842,116 +896,139 @@ export default function CompetitorVideosPanel({
             </p>
           </div>
 
-          <button
-            onClick={() => setOpenAdd(true)}
-            className="inline-flex items-center gap-2 border px-5 py-3 rounded-xl hover:bg-gray-50"
-          >
-            <Plus size={18} />
-            Add Single URL
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setOpenAdd(true)}
+              className="inline-flex items-center gap-2 border px-5 py-3 rounded-xl hover:bg-gray-50"
+            >
+              <Plus size={18} />
+              Add Single URL
+            </button>
+
+            <button
+              onClick={() => setShowSyncPanel((value) => !value)}
+              className="inline-flex items-center gap-2 border px-5 py-3 rounded-xl hover:bg-gray-50"
+            >
+              {showSyncPanel ? (
+                <>
+                  <ChevronUp size={18} />
+                  Collapse
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={18} />
+                  Expand
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 mt-6">
-          <select
-            value={syncMode}
-            onChange={(event) =>
-              setSyncMode(event.target.value as "channel" | "group")
-            }
-            className="border rounded-xl px-4 py-3"
-          >
-            <option value="channel">Sync 1 Channel</option>
-            <option value="group">Sync Group</option>
-          </select>
+        {showSyncPanel && (
+          <div className="px-6 pb-6">
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={syncMode}
+                onChange={(event) =>
+                  setSyncMode(event.target.value as "channel" | "group")
+                }
+                className="border rounded-xl px-4 py-3"
+              >
+                <option value="channel">Sync 1 Channel</option>
+                <option value="group">Sync Group</option>
+              </select>
 
-          {syncMode === "channel" ? (
-            <select
-              value={syncChannelId}
-              onChange={(event) =>
-                setSyncChannelId(event.target.value)
-              }
-              className="border rounded-xl px-4 py-3 min-w-96"
-            >
-              <option value="">Choose channel</option>
+              {syncMode === "channel" ? (
+                <select
+                  value={syncChannelId}
+                  onChange={(event) =>
+                    setSyncChannelId(event.target.value)
+                  }
+                  className="border rounded-xl px-4 py-3 min-w-96"
+                >
+                  <option value="">Choose channel</option>
 
-              {competitorChannels.map((channel) => (
-                <option key={channel.id} value={channel.id}>
-                  #{channel.id} · {channel.channel_name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <select
-              value={syncGroupId}
-              onChange={(event) =>
-                setSyncGroupId(event.target.value)
-              }
-              className="border rounded-xl px-4 py-3 min-w-80"
-            >
-              <option value="">Choose group</option>
+                  {competitorChannels.map((channel) => (
+                    <option key={channel.id} value={channel.id}>
+                      #{channel.id} · {channel.channel_name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <select
+                  value={syncGroupId}
+                  onChange={(event) =>
+                    setSyncGroupId(event.target.value)
+                  }
+                  className="border rounded-xl px-4 py-3 min-w-80"
+                >
+                  <option value="">Choose group</option>
 
-              {competitorGroups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-          )}
+                  {competitorGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              )}
 
-          <select
-            value={syncDays}
-            onChange={(event) => setSyncDays(event.target.value)}
-            className="border rounded-xl px-4 py-3"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="20">Last 20 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="60">Last 60 days</option>
-            <option value="90">Last 90 days</option>
-          </select>
+              <select
+                value={syncDays}
+                onChange={(event) => setSyncDays(event.target.value)}
+                className="border rounded-xl px-4 py-3"
+              >
+                <option value="7">Last 7 days</option>
+                <option value="20">Last 20 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="60">Last 60 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
 
-          <button
-            onClick={handleSync}
-            disabled={
-              syncing ||
-              (syncMode === "channel" && !syncChannelId) ||
-              (syncMode === "group" && !syncGroupId)
-            }
-            className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-3 rounded-xl hover:bg-zinc-800 disabled:opacity-50"
-          >
-            <RefreshCw
-              size={18}
-              className={syncing ? "animate-spin" : ""}
-            />
+              <button
+                onClick={handleSync}
+                disabled={
+                  syncing ||
+                  (syncMode === "channel" && !syncChannelId) ||
+                  (syncMode === "group" && !syncGroupId)
+                }
+                className="inline-flex items-center gap-2 bg-zinc-900 text-white px-5 py-3 rounded-xl hover:bg-zinc-800 disabled:opacity-50"
+              >
+                <RefreshCw
+                  size={18}
+                  className={syncing ? "animate-spin" : ""}
+                />
 
-            {syncing
-              ? "Syncing..."
-              : syncMode === "group"
-                ? `Sync Group (${syncGroupChannels.length})`
-                : "Sync Videos"}
-          </button>
-        </div>
+                {syncing
+                  ? "Syncing..."
+                  : syncMode === "group"
+                    ? `Sync Group (${syncGroupChannels.length})`
+                    : "Sync Videos"}
+              </button>
+            </div>
 
-        {syncMode === "group" && syncGroupId && (
-          <p className="text-sm text-gray-500 mt-3">
-            Selected group has {syncGroupChannels.length} channels.
-          </p>
-        )}
+            {syncMode === "group" && syncGroupId && (
+              <p className="text-sm text-gray-500 mt-3">
+                Selected group has {syncGroupChannels.length} channels.
+              </p>
+            )}
 
-        {syncProgress && (
-          <div className="mt-4 rounded-xl border bg-gray-50 text-gray-700 p-4 text-sm">
-            {syncProgress}
-          </div>
-        )}
+            {syncProgress && (
+              <div className="mt-4 rounded-xl border bg-gray-50 text-gray-700 p-4 text-sm">
+                {syncProgress}
+              </div>
+            )}
 
-        {syncMessage && (
-          <div className="mt-4 rounded-xl border border-green-100 bg-green-50 text-green-700 p-4 text-sm">
-            {syncMessage}
-          </div>
-        )}
+            {syncMessage && (
+              <div className="mt-4 rounded-xl border border-green-100 bg-green-50 text-green-700 p-4 text-sm">
+                {syncMessage}
+              </div>
+            )}
 
-        {syncError && (
-          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 text-red-700 p-4 text-sm">
-            {syncError}
+            {syncError && (
+              <div className="mt-4 rounded-xl border border-red-100 bg-red-50 text-red-700 p-4 text-sm">
+                {syncError}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -965,18 +1042,37 @@ export default function CompetitorVideosPanel({
               </h2>
 
               <p className="text-sm text-gray-500 mt-1">
-                Filter, sort, and remix synced competitor videos.
+                Filter, sort, remix and browse synced competitor videos. Showing 30 videos per page.
               </p>
             </div>
 
-            <div className="text-sm text-gray-500 text-right">
-              <div>
-                {formatNumber(sortedVideos.length)} / {formatNumber(competitorVideos.length)} videos
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-500 text-right">
+                <div>
+                  {formatNumber(sortedVideos.length)} / {formatNumber(competitorVideos.length)} videos
+                </div>
+
+                <div>
+                  Filtered views: {formatNumber(filteredTotalViews)}
+                </div>
               </div>
 
-              <div>
-                Filtered views: {formatNumber(filteredTotalViews)}
-              </div>
+              <button
+                onClick={() => setShowVideoTable((value) => !value)}
+                className="inline-flex items-center gap-2 border px-5 py-3 rounded-xl hover:bg-gray-50"
+              >
+                {showVideoTable ? (
+                  <>
+                    <ChevronUp size={18} />
+                    Collapse
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={18} />
+                    Expand
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1108,6 +1204,7 @@ export default function CompetitorVideosPanel({
                 setMinViews("");
                 setPublishedWindow("All");
                 setSortKey("views_desc");
+                setCurrentPage(1);
               }}
               className="border rounded-xl px-4 py-2 hover:bg-gray-50"
             >
@@ -1116,221 +1213,299 @@ export default function CompetitorVideosPanel({
           </div>
         </div>
 
-        <div className="overflow-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500">
-              <tr>
-                <th className="text-left p-4 min-w-64">
-                  Thumbnail
-                </th>
+        {showVideoTable && (
+          <>
+            <div className="px-6 py-4 border-b flex items-center justify-between gap-4 bg-gray-50">
+              <div className="text-sm text-gray-600">
+                Showing{" "}
+                <span className="font-semibold">
+                  {formatNumber(pageStart)} - {formatNumber(pageEnd)}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold">
+                  {formatNumber(sortedVideos.length)}
+                </span>{" "}
+                videos
+              </div>
 
-                <th className="text-left p-4 min-w-96">
-                  Video
-                </th>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={safeCurrentPage === 1}
+                  className="inline-flex items-center gap-2 border px-4 py-2 rounded-xl bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
 
-                <th className="text-left p-4">
-                  Group
-                </th>
+                <select
+                  value={safeCurrentPage}
+                  onChange={(event) =>
+                    setCurrentPage(Number(event.target.value))
+                  }
+                  className="border rounded-xl px-4 py-2 bg-white"
+                >
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      Page {index + 1} / {totalPages}
+                    </option>
+                  ))}
+                </select>
 
-                <th className="text-left p-4">
-                  Channel
-                </th>
+                <button
+                  onClick={goToNextPage}
+                  disabled={safeCurrentPage === totalPages}
+                  className="inline-flex items-center gap-2 border px-4 py-2 rounded-xl bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
 
-                <th className="text-left p-4">
-                  Theme
-                </th>
+            <div className="overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500">
+                  <tr>
+                    <th className="text-left p-4 min-w-64">
+                      Thumbnail
+                    </th>
 
-                <th className="text-left p-4">
-                  Idea Type
-                </th>
+                    <th className="text-left p-4 min-w-96">
+                      Video
+                    </th>
 
-                <th className="text-left p-4">
-                  Hook
-                </th>
+                    <th className="text-left p-4">
+                      Group
+                    </th>
 
-                <th className="text-left p-4">
-                  Views
-                </th>
+                    <th className="text-left p-4">
+                      Channel
+                    </th>
 
-                <th className="text-left p-4">
-                  Views/day
-                </th>
+                    <th className="text-left p-4">
+                      Theme
+                    </th>
 
-                <th className="text-left p-4">
-                  Likes
-                </th>
+                    <th className="text-left p-4">
+                      Idea Type
+                    </th>
 
-                <th className="text-left p-4">
-                  Comments
-                </th>
+                    <th className="text-left p-4">
+                      Hook
+                    </th>
 
-                <th className="text-left p-4">
-                  Published
-                </th>
+                    <th className="text-left p-4">
+                      Views
+                    </th>
 
-                <th className="text-left p-4">
-                  Score
-                </th>
+                    <th className="text-left p-4">
+                      Views/day
+                    </th>
 
-                <th className="text-left p-4 min-w-72">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+                    <th className="text-left p-4">
+                      Likes
+                    </th>
 
-            <tbody>
-              {sortedVideos.map((video) => {
-                const channel = video.competitor_channel_id
-                  ? channelMap.get(video.competitor_channel_id)
-                  : null;
+                    <th className="text-left p-4">
+                      Comments
+                    </th>
 
-                const group = video.group_id
-                  ? groupMap.get(video.group_id)
-                  : null;
+                    <th className="text-left p-4">
+                      Published
+                    </th>
 
-                const thumbnail = getBestThumbnail(video);
+                    <th className="text-left p-4">
+                      Score
+                    </th>
 
-                return (
-                  <tr
-                    key={video.id}
-                    className="border-t hover:bg-gray-50"
-                  >
-                    <td className="p-4">
-                      {thumbnail ? (
-                        <img
-                          src={thumbnail}
-                          alt={video.title}
-                          className="w-48 aspect-video object-cover rounded-xl border bg-gray-100"
-                        />
-                      ) : (
-                        <div className="w-48 aspect-video rounded-xl border bg-gray-50 flex items-center justify-center text-gray-400">
-                          <ImageIcon size={24} />
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="p-4">
-                      <div className="font-semibold">
-                        {video.title}
-                      </div>
-
-                      <div className="text-xs text-gray-400 mt-1">
-                        ID #{video.id} · Video ID {video.youtube_video_id}
-                      </div>
-
-                      {video.title_formula && (
-                        <div className="text-xs text-gray-500 mt-2">
-                          Formula: {video.title_formula}
-                        </div>
-                      )}
-
-                      {video.thumbnail_style && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Thumbnail: {video.thumbnail_style}
-                        </div>
-                      )}
-
-                      {video.video_url && (
-                        <a
-                          href={video.video_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-blue-600 mt-2"
-                        >
-                          Open YouTube
-                          <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </td>
-
-                    <td className="p-4">
-                      {group?.name || "-"}
-                    </td>
-
-                    <td className="p-4">
-                      {channel?.channel_name || video.channel_title || "-"}
-                    </td>
-
-                    <td className="p-4">
-                      <span className="px-3 py-1 rounded-full bg-zinc-100 text-zinc-700">
-                        {video.theme || "-"}
-                      </span>
-                    </td>
-
-                    <td className="p-4">
-                      {video.idea_type || "-"}
-                    </td>
-
-                    <td className="p-4">
-                      {video.hook_type || "-"}
-                    </td>
-
-                    <td className="p-4 font-semibold">
-                      {formatNumber(video.view_count)}
-                    </td>
-
-                    <td className="p-4 font-semibold">
-                      {formatNumber(Math.round(getViewsPerDay(video)))}
-                    </td>
-
-                    <td className="p-4">
-                      {formatNumber(video.like_count)}
-                    </td>
-
-                    <td className="p-4">
-                      {formatNumber(video.comment_count)}
-                    </td>
-
-                    <td className="p-4 text-gray-600">
-                      {formatDate(video.published_at)}
-                    </td>
-
-                    <td className="p-4 font-semibold">
-                      {Number(video.performance_score || 0)}
-                    </td>
-
-                    <td className="p-4">
-                      <div className="flex items-center gap-4">
-                        <RemixCompetitorVideoButton
-                          video={video}
-                          channelName={channel?.channel_name || video.channel_title || ""}
-                          groupName={group?.name || ""}
-                        />
-
-                        <button
-                          onClick={() => setEditingVideo(video)}
-                          className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
-                        >
-                          <Pencil size={16} />
-                          Edit
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(video)}
-                          className="inline-flex items-center gap-2 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 size={16} />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+                    <th className="text-left p-4 min-w-72">
+                      Actions
+                    </th>
                   </tr>
-                );
-              })}
+                </thead>
 
-              {sortedVideos.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={14}
-                    className="p-8 text-center text-gray-500"
-                  >
-                    No competitor videos found. Sync a channel/group or reset filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                <tbody>
+                  {paginatedVideos.map((video) => {
+                    const channel = video.competitor_channel_id
+                      ? channelMap.get(video.competitor_channel_id)
+                      : null;
+
+                    const group = video.group_id
+                      ? groupMap.get(video.group_id)
+                      : null;
+
+                    const thumbnail = getBestThumbnail(video);
+
+                    return (
+                      <tr
+                        key={video.id}
+                        className="border-t hover:bg-gray-50"
+                      >
+                        <td className="p-4">
+                          {thumbnail ? (
+                            <img
+                              src={thumbnail}
+                              alt={video.title}
+                              className="w-48 aspect-video object-cover rounded-xl border bg-gray-100"
+                            />
+                          ) : (
+                            <div className="w-48 aspect-video rounded-xl border bg-gray-50 flex items-center justify-center text-gray-400">
+                              <ImageIcon size={24} />
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="p-4 max-w-xl">
+                          <div className="font-semibold leading-5 line-clamp-2">
+                            {video.title}
+                          </div>
+
+                          <div className="text-xs text-gray-400 mt-1">
+                            ID #{video.id} · Video ID {video.youtube_video_id}
+                          </div>
+
+                          {video.title_formula && (
+                            <div className="text-xs text-gray-500 mt-2 line-clamp-2">
+                              Formula: {video.title_formula}
+                            </div>
+                          )}
+
+                          {video.thumbnail_style && (
+                            <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              Thumbnail: {video.thumbnail_style}
+                            </div>
+                          )}
+
+                          {video.video_url && (
+                            <a
+                              href={video.video_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 mt-2"
+                            >
+                              Open YouTube
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                        </td>
+
+                        <td className="p-4">
+                          {group?.name || "-"}
+                        </td>
+
+                        <td className="p-4">
+                          {channel?.channel_name || video.channel_title || "-"}
+                        </td>
+
+                        <td className="p-4">
+                          <span className="px-3 py-1 rounded-full bg-zinc-100 text-zinc-700">
+                            {video.theme || "-"}
+                          </span>
+                        </td>
+
+                        <td className="p-4">
+                          {video.idea_type || "-"}
+                        </td>
+
+                        <td className="p-4">
+                          {video.hook_type || "-"}
+                        </td>
+
+                        <td className="p-4 font-semibold">
+                          {formatNumber(video.view_count)}
+                        </td>
+
+                        <td className="p-4 font-semibold">
+                          {formatNumber(Math.round(getViewsPerDay(video)))}
+                        </td>
+
+                        <td className="p-4">
+                          {formatNumber(video.like_count)}
+                        </td>
+
+                        <td className="p-4">
+                          {formatNumber(video.comment_count)}
+                        </td>
+
+                        <td className="p-4 text-gray-600">
+                          {formatDate(video.published_at)}
+                        </td>
+
+                        <td className="p-4 font-semibold">
+                          {Number(video.performance_score || 0)}
+                        </td>
+
+                        <td className="p-4">
+                          <div className="flex flex-wrap items-center gap-4">
+                            <RemixCompetitorVideoButton
+                              video={video}
+                              channelName={channel?.channel_name || video.channel_title || ""}
+                              groupName={group?.name || ""}
+                            />
+
+                            <button
+                              onClick={() => setEditingVideo(video)}
+                              className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
+                            >
+                              <Pencil size={16} />
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() => handleDelete(video)}
+                              className="inline-flex items-center gap-2 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 size={16} />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {paginatedVideos.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={14}
+                        className="p-8 text-center text-gray-500"
+                      >
+                        No competitor videos found. Sync a channel/group or reset filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-6 py-4 border-t flex items-center justify-between gap-4 bg-gray-50">
+              <div className="text-sm text-gray-600">
+                Page {safeCurrentPage} / {totalPages} · 30 videos per page
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={safeCurrentPage === 1}
+                  className="inline-flex items-center gap-2 border px-4 py-2 rounded-xl bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+
+                <button
+                  onClick={goToNextPage}
+                  disabled={safeCurrentPage === totalPages}
+                  className="inline-flex items-center gap-2 border px-4 py-2 rounded-xl bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {openAdd && (

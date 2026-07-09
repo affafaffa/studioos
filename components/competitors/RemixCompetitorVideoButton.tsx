@@ -23,6 +23,20 @@ type RemixIdea = {
   score: number;
 };
 
+function getBestThumbnail(video?: CompetitorVideo | null) {
+  if (!video) return "";
+
+  return (
+    video.thumbnail_maxres_url ||
+    video.thumbnail_standard_url ||
+    video.thumbnail_high_url ||
+    video.thumbnail_medium_url ||
+    video.thumbnail_url ||
+    video.thumbnail_default_url ||
+    ""
+  );
+}
+
 function DetailBlock({
   label,
   value,
@@ -134,6 +148,8 @@ export default function RemixCompetitorVideoButton({
     setErrorMessage("");
     setSavedMessage("");
 
+    const sourceThumbnailUrl = getBestThumbnail(video);
+
     const fullNotes = `${remixIdea.notes}
 
 Source competitor video:
@@ -147,6 +163,9 @@ ${channelName || "-"}
 
 Source group:
 ${groupName || "-"}
+
+Source public views:
+${Number(video.view_count || 0).toLocaleString("en-US")}
 
 Reminder:
 This is a remix based on market pattern. Do not copy the competitor title, thumbnail, characters, or exact scenes.`;
@@ -177,27 +196,39 @@ This is a remix based on market pattern. Do not copy the competitor title, thumb
       return;
     }
 
-    await supabase.from("competitor_remixes").insert({
-      competitor_video_id: video.id,
-      saved_idea_id: ideaData?.id || null,
+    const { error: remixError } = await supabase
+      .from("competitor_remixes")
+      .insert({
+        competitor_video_id: video.id,
+        saved_idea_id: ideaData?.id || null,
 
-      source_title: video.title,
-      source_video_url: video.video_url,
-      source_channel: channelName,
-      source_group: groupName,
+        source_title: video.title,
+        source_video_url: video.video_url,
+        source_channel: channelName,
+        source_group: groupName,
+        source_thumbnail_url: sourceThumbnailUrl || null,
+        source_view_count: Number(video.view_count || 0),
+        source_published_at: video.published_at || null,
 
-      remixed_title: remixIdea.title,
-      theme: remixIdea.theme,
-      language: remixIdea.language || "EN",
-      hook: remixIdea.hook,
-      thumbnail_prompt: remixIdea.thumbnail_prompt,
-      storyline: remixIdea.storyline,
-      notes: fullNotes,
-      score: remixIdea.score || 85,
-    });
+        remixed_title: remixIdea.title,
+        theme: remixIdea.theme,
+        language: remixIdea.language || "EN",
+        hook: remixIdea.hook,
+        thumbnail_prompt: remixIdea.thumbnail_prompt,
+        storyline: remixIdea.storyline,
+        notes: fullNotes,
+        score: remixIdea.score || 85,
+        status: "Saved",
+      });
+
+    if (remixError) {
+      setSaving(false);
+      setErrorMessage(remixError.message);
+      return;
+    }
 
     setSaving(false);
-    setSavedMessage("Saved to Idea Bank.");
+    setSavedMessage("Saved to Idea Bank and Remix Lab.");
     router.refresh();
   }
 
@@ -244,11 +275,13 @@ This is a remix based on market pattern. Do not copy the competitor title, thumb
                 </h3>
 
                 <p className="text-sm text-gray-500 mt-2">
-                  {groupName || "-"} · {channelName || "-"} · {Number(video.view_count || 0).toLocaleString("en-US")} views
+                  {groupName || "-"} · {channelName || "-"} ·{" "}
+                  {Number(video.view_count || 0).toLocaleString("en-US")} views
                 </p>
 
                 <p className="text-sm text-gray-500 mt-1">
-                  {video.theme || "-"} · {video.idea_type || "-"} · {video.hook_type || "-"}
+                  {video.theme || "-"} · {video.idea_type || "-"} ·{" "}
+                  {video.hook_type || "-"}
                 </p>
               </div>
 
@@ -284,7 +317,8 @@ This is a remix based on market pattern. Do not copy the competitor title, thumb
                         </h3>
 
                         <p className="text-sm text-gray-500 mt-2">
-                          {remixIdea.theme} · {remixIdea.language || "EN"} · Score {remixIdea.score || 85}
+                          {remixIdea.theme} · {remixIdea.language || "EN"} · Score{" "}
+                          {remixIdea.score || 85}
                         </p>
                       </div>
 

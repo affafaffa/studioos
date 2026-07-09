@@ -5,6 +5,7 @@ import type { Video } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
+  CompetitorRemix,
   CompetitorVideo,
 } from "@/types/competitor";
 
@@ -15,6 +16,7 @@ export default async function Home() {
     competitorGroupsResult,
     competitorChannelsResult,
     competitorVideosResult,
+    competitorRemixesResult,
   ] = await Promise.all([
     supabase
       .from("ideas")
@@ -40,6 +42,11 @@ export default async function Home() {
       .from("competitor_videos")
       .select("*")
       .order("view_count", { ascending: false }),
+
+    supabase
+      .from("competitor_remixes")
+      .select("*")
+      .order("created_at", { ascending: false }),
   ]);
 
   const error =
@@ -47,7 +54,8 @@ export default async function Home() {
     videosResult.error ||
     competitorGroupsResult.error ||
     competitorChannelsResult.error ||
-    competitorVideosResult.error;
+    competitorVideosResult.error ||
+    competitorRemixesResult.error;
 
   if (error) {
     return (
@@ -73,6 +81,9 @@ export default async function Home() {
   const competitorVideos =
     (competitorVideosResult.data || []) as CompetitorVideo[];
 
+  const competitorRemixes =
+    (competitorRemixesResult.data || []) as CompetitorRemix[];
+
   return (
     <AppShell
       ideas={ideas}
@@ -80,6 +91,7 @@ export default async function Home() {
       competitorGroups={competitorGroups}
       competitorChannels={competitorChannels}
       competitorVideos={competitorVideos}
+      competitorRemixes={competitorRemixes}
     />
   );
 }

@@ -9,6 +9,7 @@ import type { Video } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
+  CompetitorRemix,
   CompetitorVideo,
 } from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
@@ -19,6 +20,7 @@ type Props = {
   competitorGroups: CompetitorGroup[];
   competitorChannels: CompetitorChannel[];
   competitorVideos: CompetitorVideo[];
+  competitorRemixes: CompetitorRemix[];
 };
 
 export default function AppShell({
@@ -27,6 +29,7 @@ export default function AppShell({
   competitorGroups,
   competitorChannels,
   competitorVideos,
+  competitorRemixes,
 }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>("dashboard");
@@ -40,6 +43,11 @@ export default function AppShell({
     setTimeout(() => {
       setHighlightedIdeaId(ideaId);
     }, 50);
+  }
+
+  function handleOpenIdeaFromRemix(ideaId: number) {
+    setActiveView("ideas");
+    handleHighlightIdea(ideaId);
   }
 
   return (
@@ -63,9 +71,11 @@ export default function AppShell({
             competitorGroups={competitorGroups}
             competitorChannels={competitorChannels}
             competitorVideos={competitorVideos}
+            competitorRemixes={competitorRemixes}
             activeView={activeView}
             onChangeView={setActiveView}
             highlightedIdeaId={highlightedIdeaId}
+            onOpenIdeaFromRemix={handleOpenIdeaFromRemix}
           />
         </div>
       </div>

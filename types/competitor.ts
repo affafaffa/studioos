@@ -88,3 +88,30 @@ export type CompetitorVideoSnapshot = {
   comment_count: number | null;
   captured_at: string;
 };
+
+export type CompetitorRemix = {
+  id: number;
+  competitor_video_id: number | null;
+  saved_idea_id: number | null;
+
+  source_title: string | null;
+  source_video_url: string | null;
+  source_channel: string | null;
+  source_group: string | null;
+  source_thumbnail_url: string | null;
+  source_view_count: number | null;
+  source_published_at: string | null;
+
+  remixed_title: string;
+  theme: string | null;
+  language: string | null;
+  hook: string | null;
+  thumbnail_prompt: string | null;
+  storyline: string | null;
+  notes: string | null;
+  score: number | null;
+  status: string | null;
+
+  created_at: string;
+  updated_at: string | null;
+};
