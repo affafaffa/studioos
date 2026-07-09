@@ -6,6 +6,7 @@ import AIBrainstormPanel from "./AIBrainstormPanel";
 import DashboardHome from "@/components/dashboard/DashboardHome";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
 import CompetitorMarketScanButton from "@/components/competitors/CompetitorMarketScanButton";
+import CompetitorMobileDashboard from "@/components/competitors/CompetitorMobileDashboard";
 import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
 import AnalystWorkspace from "@/components/competitors/AnalystWorkspace";
 import IdeaWorkspace from "@/components/ideas/IdeaWorkspace";
@@ -43,16 +44,22 @@ function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between mb-8">
-      <div>
-        <h1 className="text-3xl font-bold">{title}</h1>
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 lg:mb-8">
+      <div className="min-w-0">
+        <h1 className="text-2xl lg:text-3xl font-bold">
+          {title}
+        </h1>
 
-        <p className="text-gray-500 mt-1">
+        <p className="text-gray-500 mt-1 text-sm lg:text-base leading-6">
           {description}
         </p>
       </div>
 
-      {action}
+      {action && (
+        <div className="w-full lg:w-auto overflow-x-auto">
+          {action}
+        </div>
+      )}
     </div>
   );
 }
@@ -83,7 +90,7 @@ export default function Dashboard({
 
   if (activeView === "dashboard") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="Dashboard"
           description="Your simplified StudioOS command center."
@@ -102,7 +109,7 @@ export default function Dashboard({
 
   if (activeView === "ideas") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="Ideas"
           description="Create, review and plan ideas through one clear workflow."
@@ -123,12 +130,12 @@ export default function Dashboard({
 
   if (activeView === "competitors") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="Competitors"
           description="Scan the market, track competitor groups, keywords, viral videos, thumbnails and metadata."
           action={
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-max">
               <CompetitorMarketScanButton
                 groups={safeCompetitorGroups}
                 channels={safeCompetitorChannels}
@@ -142,20 +149,28 @@ export default function Dashboard({
           }
         />
 
-        <CompetitorWorkspace
+        <CompetitorMobileDashboard
           competitorGroups={safeCompetitorGroups}
           competitorChannels={safeCompetitorChannels}
           competitorVideos={safeCompetitorVideos}
-          competitorRemixes={safeCompetitorRemixes}
-          onOpenIdea={onOpenIdeaFromRemix}
         />
+
+        <div className="hidden lg:block">
+          <CompetitorWorkspace
+            competitorGroups={safeCompetitorGroups}
+            competitorChannels={safeCompetitorChannels}
+            competitorVideos={safeCompetitorVideos}
+            competitorRemixes={safeCompetitorRemixes}
+            onOpenIdea={onOpenIdeaFromRemix}
+          />
+        </div>
       </div>
     );
   }
 
   if (activeView === "analyst") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="Analyst"
           description="Analyze competitor groups and turn research signals into actions."
@@ -172,7 +187,7 @@ export default function Dashboard({
 
   if (activeView === "ai") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="AI Assistant"
           description="Generate, improve and save creative briefs."
@@ -185,7 +200,7 @@ export default function Dashboard({
 
   if (activeView === "calendar") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="Calendar"
           description="Drag ideas across the production workflow."
@@ -198,7 +213,7 @@ export default function Dashboard({
 
   if (activeView === "settings") {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
         <SectionHeader
           title="Settings"
           description="StudioOS configuration, preferences and workspace health."
@@ -215,7 +230,7 @@ export default function Dashboard({
   }
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
+    <div className="px-3 py-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen overflow-x-hidden">
       <SectionHeader
         title="Dashboard"
         description="Your simplified StudioOS command center."
