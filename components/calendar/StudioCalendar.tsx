@@ -1,17 +1,18 @@
 "use client";
 
-import { DragEvent, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  DragEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   CalendarDays,
-  CheckCircle2,
   Clock,
   GripVertical,
-  Lightbulb,
   Loader2,
   Search,
   Sparkles,
-  Target,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Idea } from "@/types/idea";
@@ -140,6 +141,10 @@ function getStage(idea: Idea): BoardStage {
   return "Idea Pool";
 }
 
+function stageToStatus(stage: BoardStage) {
+  return stage === "Idea Pool" ? "Idea" : stage;
+}
+
 function getPriorityClass(priority: string) {
   if (priority === "Focus") {
     return "bg-rose-600 text-white";
@@ -155,13 +160,21 @@ function getPriorityClass(priority: string) {
 export default function StudioCalendar({
   ideas,
 }: Props) {
-  const router = useRouter();
+  const [localIdeas, setLocalIdeas] = useState<Idea[]>(ideas);
 
   const [query, setQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+
   const [draggedIdeaId, setDraggedIdeaId] = useState<number | null>(null);
+  const [overStage, setOverStage] = useState<BoardStage | null>(null);
   const [workingId, setWorkingId] = useState<number | null>(null);
+
   const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    setLocalIdeas(ideas);
+  }, [ideas]);
 
   useEffect(() => {
     function handleGlobalSearch(event: Event) {
@@ -191,7 +204,7 @@ export default function StudioCalendar({
   const filteredIdeas = useMemo(() => {
     const text = query.trim().toLowerCase();
 
-    return ideas.filter((idea) => {
+    return localIdeas.filter((idea) => {
       if (priorityFilter && getPriority(idea) !== priorityFilter) {
         return false;
       }
@@ -206,7 +219,7 @@ export default function StudioCalendar({
       );
     });
   }, [
-    ideas,
+    localIdeas,
     query,
     priorityFilter,
   ]);
@@ -227,10 +240,23 @@ export default function StudioCalendar({
   }, [filteredIdeas]);
 
   async function moveIdeaToStage(ideaId: number, stage: BoardStage) {
+    const previousIdeas = localIdeas;
+    const nextStatus = stageToStatus(stage);
+
     setWorkingId(ideaId);
     setMessage("");
+    setErrorMessage("");
 
-    const nextStatus = stage === "Idea Pool" ? "Idea" : stage;
+    setLocalIdeas((current) =>
+      current.map((idea) =>
+        idea.id === ideaId
+          ? {
+              ...idea,
+              status: nextStatus,
+            }
+          : idea
+      )
+    );
 
     const { error } = await supabase
       .from("ideas")
@@ -240,29 +266,62 @@ export default function StudioCalendar({
       .eq("id", ideaId);
 
     if (error) {
-      setMessage(error.message);
+      setLocalIdeas(previousIdeas);
+      setErrorMessage(error.message);
       setWorkingId(null);
       return;
     }
 
     setMessage(`Idea moved to ${stage}.`);
     setWorkingId(null);
-    router.refresh();
   }
 
-  function handleDragStart(ideaId: number) {
+  function handleDragStart(
+    event: DragEvent<HTMLDivElement>,
+    ideaId: number
+  ) {
     setDraggedIdeaId(ideaId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(ideaId));
   }
 
-  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+  function handleDragOver(
+    event: DragEvent<HTMLDivElement>,
+    stage: BoardStage
+  ) {
     event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setOverStage(stage);
   }
 
-  function handleDrop(stage: BoardStage) {
-    if (!draggedIdeaId) return;
+  function handleDragLeave(stage: BoardStage) {
+    if (overStage === stage) {
+      setOverStage(null);
+    }
+  }
 
-    moveIdeaToStage(draggedIdeaId, stage);
+  function handleDrop(
+    event: DragEvent<HTMLDivElement>,
+    stage: BoardStage
+  ) {
+    event.preventDefault();
+
+    const fromTransfer = Number(
+      event.dataTransfer.getData("text/plain") || 0
+    );
+
+    const ideaId = fromTransfer || draggedIdeaId;
+
+    if (!ideaId) return;
+
+    moveIdeaToStage(ideaId, stage);
     setDraggedIdeaId(null);
+    setOverStage(null);
+  }
+
+  function handleDragEnd() {
+    setDraggedIdeaId(null);
+    setOverStage(null);
   }
 
   const readyToPlanCount = groupedIdeas.get("Ready to Plan")?.length || 0;
@@ -288,17 +347,17 @@ export default function StudioCalendar({
             </h2>
 
             <p className="text-zinc-300 mt-2 max-w-3xl">
-              Kéo thả idea qua các cột để đổi trạng thái sản xuất. Idea từ Review Ideas sẽ xuất hiện ở Ready to Plan.
+              Kéo thả idea qua các cột để đổi trạng thái sản xuất. UI sẽ cập nhật ngay, không refresh cả trang nên mượt hơn.
             </p>
           </div>
 
           <div className="text-right">
             <p className="text-sm text-zinc-400">
-              Drag & drop
+              Drag mode
             </p>
 
             <p className="text-2xl font-bold mt-1">
-              Enabled
+              Smooth
             </p>
           </div>
         </div>
@@ -353,11 +412,11 @@ export default function StudioCalendar({
           </p>
 
           <p className="text-xl font-bold mt-2">
-            Drag cards
+            Drag horizontally
           </p>
 
           <p className="text-xs text-slate-600 mt-2">
-            Thả card vào cột mới để đổi status
+            Board dạng ngang để đỡ giật
           </p>
         </div>
       </div>
@@ -395,106 +454,131 @@ export default function StudioCalendar({
             {message}
           </p>
         )}
+
+        {errorMessage && (
+          <p className="mt-4 rounded-2xl bg-red-50 text-red-700 border border-red-200 px-4 py-3 text-sm font-semibold">
+            {errorMessage}
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-7 gap-4">
-        {stages.map((stage) => {
-          const stageIdeas = groupedIdeas.get(stage.id) || [];
+      <div className="bg-white rounded-3xl border shadow p-4 overflow-x-auto">
+        <div className="flex gap-4 min-w-max pb-2">
+          {stages.map((stage) => {
+            const stageIdeas = groupedIdeas.get(stage.id) || [];
+            const isOver = overStage === stage.id;
 
-          return (
-            <div
-              key={stage.id}
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(stage.id)}
-              className="bg-white rounded-3xl border shadow overflow-hidden min-h-[640px]"
-            >
-              <div className={`p-4 border-b ${stage.color}`}>
-                <p className="text-xs font-bold uppercase tracking-wide">
-                  {stage.title}
-                </p>
+            return (
+              <div
+                key={stage.id}
+                onDragOver={(event) =>
+                  handleDragOver(event, stage.id)
+                }
+                onDragLeave={() => handleDragLeave(stage.id)}
+                onDrop={(event) => handleDrop(event, stage.id)}
+                className={`w-[310px] shrink-0 rounded-3xl border overflow-hidden min-h-[660px] transition ${
+                  isOver
+                    ? "ring-4 ring-blue-100 border-blue-400 bg-blue-50"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <div className={`p-4 border-b ${stage.color}`}>
+                  <p className="text-xs font-bold uppercase tracking-wide">
+                    {stage.title}
+                  </p>
 
-                <h3 className="font-bold text-lg mt-2">
-                  {stageIdeas.length} ideas
-                </h3>
+                  <h3 className="font-bold text-lg mt-2">
+                    {stageIdeas.length} ideas
+                  </h3>
 
-                <p className="text-xs mt-1 opacity-80">
-                  {stage.description}
-                </p>
-              </div>
+                  <p className="text-xs mt-1 opacity-80">
+                    {stage.description}
+                  </p>
+                </div>
 
-              <div className="p-3 space-y-3 max-h-[680px] overflow-auto">
-                {stageIdeas.map((idea) => {
-                  const priority = getPriority(idea);
+                <div className="p-3 space-y-3 max-h-[720px] overflow-auto">
+                  {stageIdeas.map((idea) => {
+                    const priority = getPriority(idea);
+                    const isDragging = draggedIdeaId === idea.id;
 
-                  return (
-                    <div
-                      key={idea.id}
-                      draggable
-                      onDragStart={() => handleDragStart(idea.id)}
-                      className="rounded-2xl border bg-white p-4 hover:shadow-md transition cursor-grab active:cursor-grabbing"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${getPriorityClass(priority)}`}
+                    return (
+                      <div
+                        key={idea.id}
+                        draggable
+                        onDragStart={(event) =>
+                          handleDragStart(event, idea.id)
+                        }
+                        onDragEnd={handleDragEnd}
+                        className={`rounded-2xl border bg-white p-4 transition cursor-grab active:cursor-grabbing ${
+                          isDragging
+                            ? "opacity-40 scale-[0.98]"
+                            : "hover:shadow-md"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${getPriorityClass(priority)}`}
+                          >
+                            {priority}
+                          </span>
+
+                          {workingId === idea.id ? (
+                            <Loader2
+                              size={16}
+                              className="animate-spin text-slate-400"
+                            />
+                          ) : (
+                            <GripVertical
+                              size={16}
+                              className="text-slate-400"
+                            />
+                          )}
+                        </div>
+
+                        <p className="font-bold mt-3 leading-5">
+                          {idea.title}
+                        </p>
+
+                        <p className="text-xs text-slate-500 mt-2">
+                          {getCluster(idea)} / {getNiche(idea)}
+                        </p>
+
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-3">
+                          <Clock size={13} />
+                          Updated {formatDate(idea.updated_at || idea.created_at)}
+                        </div>
+
+                        <select
+                          value={getStage(idea)}
+                          onChange={(event) =>
+                            moveIdeaToStage(
+                              idea.id,
+                              event.target.value as BoardStage
+                            )
+                          }
+                          onMouseDown={(event) => event.stopPropagation()}
+                          className="mt-4 w-full border rounded-xl px-3 py-2 text-xs font-bold bg-white"
                         >
-                          {priority}
-                        </span>
-
-                        {workingId === idea.id ? (
-                          <Loader2
-                            size={16}
-                            className="animate-spin text-slate-400"
-                          />
-                        ) : (
-                          <GripVertical
-                            size={16}
-                            className="text-slate-400"
-                          />
-                        )}
-                      </div>
-
-                      <p className="font-bold mt-3 leading-5">
-                        {idea.title}
-                      </p>
-
-                      <p className="text-xs text-slate-500 mt-2">
-                        {getCluster(idea)}
-                      </p>
-
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-3">
-                        <Clock size={13} />
-                        Updated {formatDate(idea.updated_at || idea.created_at)}
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                        {stages
-                          .filter((item) => item.id !== stage.id)
-                          .slice(0, 2)
-                          .map((nextStage) => (
-                            <button
-                              key={nextStage.id}
-                              onClick={() =>
-                                moveIdeaToStage(idea.id, nextStage.id)
-                              }
-                              className="rounded-xl border px-2 py-2 text-xs font-bold hover:bg-slate-50"
-                            >
-                              {nextStage.id}
-                            </button>
+                          {stages.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              Move to {item.id}
+                            </option>
                           ))}
+                        </select>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
 
-                {stageIdeas.length === 0 && (
-                  <div className="rounded-2xl border border-dashed p-6 text-center text-slate-400">
-                    Drop idea here
-                  </div>
-                )}
+                  {stageIdeas.length === 0 && (
+                    <div className="rounded-2xl border border-dashed p-6 text-center text-slate-400">
+                      Drop idea here
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl border shadow p-6">

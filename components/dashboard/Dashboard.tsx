@@ -5,6 +5,7 @@ import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
 import DashboardHome from "@/components/dashboard/DashboardHome";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
+import CompetitorMarketScanButton from "@/components/competitors/CompetitorMarketScanButton";
 import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
 import AnalystWorkspace from "@/components/competitors/AnalystWorkspace";
 import IdeaWorkspace from "@/components/ideas/IdeaWorkspace";
@@ -125,12 +126,19 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Competitors"
-          description="Track competitor groups, market share, keywords, remixes and video metadata."
+          description="Scan the market, track competitor groups, keywords, viral videos, thumbnails and metadata."
           action={
-            <BulkImportChannelsButton
-              groups={safeCompetitorGroups}
-              existingChannels={safeCompetitorChannels}
-            />
+            <div className="flex items-center gap-3">
+              <CompetitorMarketScanButton
+                groups={safeCompetitorGroups}
+                channels={safeCompetitorChannels}
+              />
+
+              <BulkImportChannelsButton
+                groups={safeCompetitorGroups}
+                existingChannels={safeCompetitorChannels}
+              />
+            </div>
           }
         />
 
