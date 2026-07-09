@@ -8,6 +8,7 @@ import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
 import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
+import CompetitorGroupAnalyst from "@/components/competitors/CompetitorGroupAnalyst";
 import type { Idea } from "@/types/idea";
 import type { Video as StudioVideo } from "@/types/video";
 import type {
@@ -226,6 +227,23 @@ export default function Dashboard({
           competitorVideos={safeCompetitorVideos}
           competitorRemixes={safeCompetitorRemixes}
           onOpenIdea={onOpenIdeaFromRemix}
+        />
+      </div>
+    );
+  }
+
+  if (activeView === "analyst") {
+    return (
+      <div className="p-8 bg-gray-100 min-h-screen">
+        <SectionHeader
+          title="Analyst"
+          description="Drill down into competitor groups, traffic, top channels, top videos and keyword opportunities."
+        />
+
+        <CompetitorGroupAnalyst
+          competitorGroups={safeCompetitorGroups}
+          competitorChannels={safeCompetitorChannels}
+          competitorVideos={safeCompetitorVideos}
         />
       </div>
     );

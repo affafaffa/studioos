@@ -17,6 +17,7 @@ import {
   Radar,
   Settings,
   Sparkles,
+  Target,
   Video,
 } from "lucide-react";
 import type { ActiveView } from "@/types/navigation";
@@ -57,6 +58,11 @@ const navItems: {
     id: "competitors",
     label: "Competitors",
     icon: FolderSearch,
+  },
+  {
+    id: "analyst",
+    label: "Analyst",
+    icon: Target,
   },
   {
     id: "analytics",

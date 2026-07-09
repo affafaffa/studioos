@@ -3,6 +3,7 @@ export type ActiveView =
   | "ideas"
   | "videos"
   | "competitors"
+  | "analyst"
   | "analytics"
   | "ai"
   | "calendar"
