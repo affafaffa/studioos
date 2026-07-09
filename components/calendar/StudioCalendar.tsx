@@ -462,7 +462,7 @@ export default function StudioCalendar({
         )}
       </div>
 
-      <div className="bg-white rounded-3xl border shadow p-4 overflow-x-auto">
+      <div className="bg-white rounded-3xl border shadow p-4 overflow-x-auto studioos-kanban-scroll">
         <div className="flex gap-4 min-w-max pb-2">
           {stages.map((stage) => {
             const stageIdeas = groupedIdeas.get(stage.id) || [];

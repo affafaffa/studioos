@@ -55,10 +55,10 @@ export default function Topbar({
   }
 
   return (
-    <header className="h-16 bg-white border-b fixed top-0 left-0 lg:left-[252px] right-0 z-30 flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-3">
+    <header className="h-16 bg-white border-b fixed top-0 left-0 lg:left-[252px] right-0 z-30 flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-2 sm:gap-3">
       <button
         onClick={onOpenMobileMenu}
-        className="lg:hidden w-11 h-11 rounded-2xl border flex items-center justify-center bg-white shrink-0"
+        className="lg:hidden w-10 h-10 rounded-2xl border flex items-center justify-center bg-white shrink-0"
         aria-label="Open menu"
       >
         <Menu size={20} />
@@ -74,7 +74,7 @@ export default function Topbar({
           value={query}
           onChange={(event) => handleChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full border rounded-2xl pl-11 pr-4 py-3 outline-none focus:ring-4 focus:ring-blue-100 text-zinc-950"
+          className="w-full border rounded-2xl pl-10 pr-3 py-2.5 sm:py-3 outline-none focus:ring-4 focus:ring-blue-100 text-zinc-950"
         />
       </div>
 
