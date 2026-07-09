@@ -192,7 +192,7 @@ body {
   .studioos-readable h1,
   .studioos-readable h2 {
     word-break: normal;
-    overflow-wrap: anywhere;
+    /* removed mobile squeeze rule */
   }
 
   .studioos-readable .grid {
@@ -294,7 +294,7 @@ body {
   .studioos-readable [class*="min-w-"],
   .studioos-readable .min-w-max,
   .studioos-readable [class*="min-w-max"] {
-    min-width: 0 !important;
+    /* removed mobile squeeze rule */
   }
 
   .studioos-readable [class*="max-w-"] {
@@ -311,14 +311,14 @@ body {
 
   .studioos-readable table {
     width: 100% !important;
-    min-width: 0 !important;
-    table-layout: fixed !important;
+    /* removed mobile squeeze rule */
+    /* removed mobile squeeze rule */
   }
 
   .studioos-readable th,
   .studioos-readable td {
     white-space: normal !important;
-    word-break: break-word !important;
+    /* removed mobile squeeze rule */
     overflow-wrap: anywhere !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
@@ -401,5 +401,52 @@ body {
 
   .studioos-kanban-scroll > div {
     min-width: max-content !important;
+  }
+}
+
+/* StudioOS mobile text squeeze hotfix */
+@media (max-width: 1023px) {
+  .studioos-readable th,
+  .studioos-readable td,
+  .studioos-readable p,
+  .studioos-readable span,
+  .studioos-readable h1,
+  .studioos-readable h2,
+  .studioos-readable h3,
+  .studioos-readable button,
+  .studioos-readable a,
+  .studioos-readable div {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  .studioos-readable table {
+    table-layout: auto !important;
+    width: 100% !important;
+    min-width: 680px !important;
+  }
+
+  .studioos-readable th,
+  .studioos-readable td {
+    white-space: nowrap !important;
+  }
+
+  .studioos-readable .overflow-x-auto,
+  .studioos-readable .overflow-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .studioos-readable .truncate {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* Only allow long natural text blocks to wrap */
+@media (max-width: 1023px) {
+  .studioos-readable p {
+    white-space: normal !important;
   }
 }
