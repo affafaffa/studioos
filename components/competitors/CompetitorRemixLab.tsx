@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import CompetitorKeywordRadar from "@/components/competitors/CompetitorKeywordRadar";
 import type { CompetitorRemix } from "@/types/competitor";
 
 type Props = {
@@ -283,7 +284,9 @@ export default function CompetitorRemixLab({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <CompetitorKeywordRadar />
+
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow p-6">
           <p className="text-sm text-gray-500">Total Remixes</p>
