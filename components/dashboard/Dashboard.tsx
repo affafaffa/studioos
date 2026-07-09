@@ -6,34 +6,27 @@ import IdeaBank from "./IdeaBank";
 import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
-import CompetitorIntelligence from "@/components/competitors/CompetitorIntelligence";
-import CompetitorMarketShareDashboard from "@/components/competitors/CompetitorMarketShareDashboard";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
 import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
-import CompetitorVideosPanel from "@/components/competitors/CompetitorVideosPanel";
-import CompetitorRemixLab from "@/components/competitors/CompetitorRemixLab";
 import type { Idea } from "@/types/idea";
-import type { Video } from "@/types/video";
+import type { Video as StudioVideo } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
-  CompetitorRemix,
   CompetitorVideo,
 } from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
 
 type Props = {
-  ideas: Idea[];
-  videos: Video[];
-  competitorGroups: CompetitorGroup[];
-  competitorChannels: CompetitorChannel[];
-  competitorVideos: CompetitorVideo[];
-  competitorRemixes: any[];
+  ideas?: Idea[];
+  videos?: StudioVideo[];
+  competitorGroups?: CompetitorGroup[];
+  competitorChannels?: CompetitorChannel[];
   competitorVideos?: CompetitorVideo[];
-  competitorRemixes?: CompetitorRemix[];
+  competitorRemixes?: any[];
   activeView: ActiveView;
-  onChangeView: (view: ActiveView) => void;
-  highlightedIdeaId: number | null;
+  onChangeView?: (view: ActiveView) => void;
+  highlightedIdeaId?: number | null;
   onOpenIdeaFromRemix?: (ideaId: number) => void;
 };
 
@@ -94,14 +87,14 @@ function PlaceholderView({
 }
 
 export default function Dashboard({
-  ideas,
-  videos,
-  competitorGroups,
-  competitorChannels,
-  competitorVideos,
-  competitorRemixes,
+  ideas = [],
+  videos = [],
+  competitorGroups = [],
+  competitorChannels = [],
+  competitorVideos = [],
+  competitorRemixes = [],
   activeView,
-  highlightedIdeaId,
+  highlightedIdeaId = null,
   onOpenIdeaFromRemix,
 }: Props) {
   const safeIdeas = ideas || [];
@@ -154,11 +147,6 @@ export default function Dashboard({
 
   const publishedVideos = safeVideos.filter(
     (video) => video.status === "Published"
-  );
-
-  const competitorViews = safeCompetitorVideos.reduce(
-    (sum, video) => sum + Number(video.view_count || 0),
-    0
   );
 
   const kpiCards = (
@@ -224,6 +212,12 @@ export default function Dashboard({
         <SectionHeader
           title="Competitors"
           description="Track competitor groups, market share, keywords, remixes and video metadata."
+          action={
+            <BulkImportChannelsButton
+              groups={safeCompetitorGroups}
+              existingChannels={safeCompetitorChannels}
+            />
+          }
         />
 
         <CompetitorWorkspace
@@ -259,33 +253,7 @@ export default function Dashboard({
           />
 
           <KPICard
-            title="Competitor Videos"
-            value={formatNumber(safeCompetitorVideos.length)}
-          />
-
-          <KPICard
-            title="Competitor Views"
-            value={formatNumber(competitorViews)}
-          />
-        </div>
-
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          <KPICard
-            title="Competitor Remixes"
-            value={formatNumber(safeCompetitorRemixes.length)}
-          />
-
-          <KPICard
-            title="Saved Remix Ideas"
-            value={formatNumber(
-              safeCompetitorRemixes.filter(
-                (remix) => remix.saved_idea_id
-              ).length
-            )}
-          />
-
-          <KPICard
-            title="Channels"
+            title="Competitor Channels"
             value={formatNumber(safeCompetitorChannels.length)}
           />
 
