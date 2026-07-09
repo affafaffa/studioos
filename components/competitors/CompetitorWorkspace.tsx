@@ -252,7 +252,7 @@ export default function CompetitorWorkspace({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 studioos-readable competitor-readable">
       <div className="rounded-3xl bg-zinc-950 text-white p-7 shadow">
         <div className="flex items-start justify-between gap-6">
           <div>

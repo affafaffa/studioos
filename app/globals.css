@@ -24,3 +24,153 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* STUDIOOS READABILITY HOTFIX START */
+html {
+  color-scheme: light;
+}
+
+body {
+  color: #111827;
+  background: #f3f4f6;
+}
+
+.studioos-readable {
+  color: #111827;
+}
+
+.studioos-readable h1,
+.studioos-readable h2,
+.studioos-readable h3,
+.studioos-readable h4,
+.studioos-readable p,
+.studioos-readable span,
+.studioos-readable td,
+.studioos-readable th,
+.studioos-readable label,
+.studioos-readable button,
+.studioos-readable input,
+.studioos-readable select,
+.studioos-readable textarea {
+  text-rendering: optimizeLegibility;
+}
+
+.studioos-readable .text-gray-300,
+.studioos-readable .text-gray-400 {
+  color: #64748b !important;
+}
+
+.studioos-readable .text-gray-500 {
+  color: #475569 !important;
+}
+
+.studioos-readable .text-gray-600 {
+  color: #334155 !important;
+}
+
+.studioos-readable .text-zinc-300,
+.studioos-readable .text-zinc-400 {
+  color: #71717a !important;
+}
+
+.studioos-readable .bg-white,
+.studioos-readable .bg-gray-50,
+.studioos-readable .bg-gray-100 {
+  color: #111827;
+}
+
+.studioos-readable table {
+  color: #111827;
+}
+
+.studioos-readable thead {
+  background: #f8fafc;
+}
+
+.studioos-readable th {
+  color: #334155 !important;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.studioos-readable td {
+  color: #111827;
+}
+
+.studioos-readable tr {
+  border-color: #cbd5e1;
+}
+
+.studioos-readable input,
+.studioos-readable select,
+.studioos-readable textarea {
+  color: #111827 !important;
+  background: #ffffff !important;
+  border-color: #94a3b8 !important;
+}
+
+.studioos-readable input::placeholder,
+.studioos-readable textarea::placeholder {
+  color: #64748b !important;
+}
+
+.studioos-readable a {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.studioos-readable .rounded-full,
+.studioos-readable .rounded-xl,
+.studioos-readable .rounded-2xl,
+.studioos-readable .rounded-3xl {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.competitor-readable .bg-purple-50,
+.competitor-readable .bg-rose-50,
+.competitor-readable .bg-orange-50,
+.competitor-readable .bg-amber-50,
+.competitor-readable .bg-blue-50,
+.competitor-readable .bg-emerald-50 {
+  color: #111827;
+}
+
+.competitor-readable .text-purple-700 {
+  color: #6d28d9 !important;
+}
+
+.competitor-readable .text-rose-700 {
+  color: #be123c !important;
+}
+
+.competitor-readable .text-orange-700 {
+  color: #c2410c !important;
+}
+
+.competitor-readable .text-amber-700 {
+  color: #a16207 !important;
+}
+
+.competitor-readable .text-blue-700 {
+  color: #1d4ed8 !important;
+}
+
+.competitor-readable .text-emerald-700 {
+  color: #047857 !important;
+}
+
+.competitor-readable .opacity-50 {
+  opacity: 0.85 !important;
+}
+
+.competitor-readable .opacity-60 {
+  opacity: 0.9 !important;
+}
+
+.competitor-readable .opacity-70 {
+  opacity: 0.95 !important;
+}
+/* STUDIOOS READABILITY HOTFIX END */
+
