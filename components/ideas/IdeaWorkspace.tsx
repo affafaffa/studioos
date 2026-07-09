@@ -4,21 +4,32 @@ import { useState } from "react";
 import {
   Database,
   Network,
+  Shuffle,
   WandSparkles,
 } from "lucide-react";
 import BrainstormFlowV2 from "@/components/ideas/BrainstormFlowV2";
 import IdeaArchitectureMap from "@/components/ideas/IdeaArchitectureMap";
+import RemixRuleEngine from "@/components/ideas/RemixRuleEngine";
 import IdeaBank from "@/components/dashboard/IdeaBank";
 import type { Idea } from "@/types/idea";
+import type {
+  CompetitorChannel,
+  CompetitorGroup,
+  CompetitorVideo,
+} from "@/types/competitor";
 
 type Props = {
   ideas: Idea[];
   highlightedIdeaId?: number | null;
+  competitorGroups?: CompetitorGroup[];
+  competitorChannels?: CompetitorChannel[];
+  competitorVideos?: CompetitorVideo[];
 };
 
 type IdeaSection =
   | "strategy-map"
   | "brainstorm-flow"
+  | "remix-rule-engine"
   | "idea-bank";
 
 const sections = {
@@ -42,6 +53,16 @@ const sections = {
     text: "text-rose-700",
     color: "from-rose-500 to-orange-500",
   },
+  "remix-rule-engine": {
+    label: "Remix Rule Engine",
+    description:
+      "Turn source videos and ideas into original remixes using strict remix rules.",
+    icon: Shuffle,
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    text: "text-amber-700",
+    color: "from-amber-500 to-yellow-500",
+  },
   "idea-bank": {
     label: "Idea Bank",
     description:
@@ -57,6 +78,9 @@ const sections = {
 export default function IdeaWorkspace({
   ideas,
   highlightedIdeaId = null,
+  competitorGroups = [],
+  competitorChannels = [],
+  competitorVideos = [],
 }: Props) {
   const [activeSection, setActiveSection] =
     useState<IdeaSection>("strategy-map");
@@ -67,7 +91,7 @@ export default function IdeaWorkspace({
   return (
     <div className="space-y-6 studioos-readable">
       <div className="bg-white rounded-3xl shadow border p-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {(Object.keys(sections) as IdeaSection[]).map((section) => {
             const style = sections[section];
             const Icon = style.icon;
@@ -142,6 +166,15 @@ export default function IdeaWorkspace({
 
       {activeSection === "brainstorm-flow" && (
         <BrainstormFlowV2 ideas={ideas} />
+      )}
+
+      {activeSection === "remix-rule-engine" && (
+        <RemixRuleEngine
+          ideas={ideas}
+          competitorGroups={competitorGroups}
+          competitorChannels={competitorChannels}
+          competitorVideos={competitorVideos}
+        />
       )}
 
       {activeSection === "idea-bank" && (

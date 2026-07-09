@@ -187,6 +187,9 @@ export default function Dashboard({
         <IdeaWorkspace
           ideas={safeIdeas}
           highlightedIdeaId={highlightedIdeaId}
+          competitorGroups={safeCompetitorGroups}
+          competitorChannels={safeCompetitorChannels}
+          competitorVideos={safeCompetitorVideos}
         />
       </div>
     );

@@ -29,4 +29,10 @@ export type Idea = {
   priority_level?: string | null;
   parent_path?: string | null;
   visual_color?: string | null;
+
+  source_video_url?: string | null;
+  source_video_title?: string | null;
+  source_channel_title?: string | null;
+  remix_rule?: string | null;
+  remix_strategy?: string | null;
 };
