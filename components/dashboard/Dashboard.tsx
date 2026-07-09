@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import KPICard from "./KPICard";
 import IdeaBank from "./IdeaBank";
+import IdeaWorkspace from "@/components/ideas/IdeaWorkspace";
 import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
@@ -179,11 +180,11 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Ideas"
-          description="Manage your full YouTube idea bank."
+          description="Build ideas through a structured creative architecture: story pillar, theme cluster, niche and specific concept."
           action={<AddIdeaButton ideas={safeIdeas} />}
         />
 
-        <IdeaBank
+        <IdeaWorkspace
           ideas={safeIdeas}
           highlightedIdeaId={highlightedIdeaId}
         />
