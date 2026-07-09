@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Idea } from "@/types/idea";
+import IdeaDetailCommandCenter from "@/components/ideas/IdeaDetailCommandCenter";
 
 type Props = {
   ideas: Idea[];
@@ -1447,131 +1448,18 @@ export default function IdeaBank({
       </div>
 
       {selectedIdea && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto">
-            <div className="sticky top-0 bg-white border-b p-6 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-purple-700">
-                  Idea Detail
-                </p>
-
-                <h2 className="text-2xl font-bold mt-2">
-                  {selectedIdea.title}
-                </h2>
-
-                <p className="text-sm text-slate-500 mt-1">
-                  {selectedIdea.storyPillarLabel} / {selectedIdea.clusterLabel} / {selectedIdea.nicheLabel}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setSelectedIdea(null)}
-                className="w-10 h-10 rounded-2xl border flex items-center justify-center hover:bg-slate-50"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-4 gap-4">
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs text-slate-500">Priority</p>
-                  <p className="font-bold mt-1">{selectedIdea.priorityLabel}</p>
-                </div>
-
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs text-slate-500">Status</p>
-                  <p className="font-bold mt-1">{selectedIdea.status || "Idea"}</p>
-                </div>
-
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs text-slate-500">Score</p>
-                  <p className="font-bold mt-1">{getScore(selectedIdea)}</p>
-                </div>
-
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs text-slate-500">Views</p>
-                  <p className="font-bold mt-1">{formatNumber(getViews(selectedIdea))}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-5">
-                <div className="rounded-2xl border p-5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-rose-700">
-                    Hook
-                  </p>
-
-                  <p className="text-slate-700 mt-3 whitespace-pre-wrap">
-                    {selectedIdea.hook || "-"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border p-5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
-                    Thumbnail Prompt
-                  </p>
-
-                  <p className="text-slate-700 mt-3 whitespace-pre-wrap">
-                    {selectedIdea.thumbnail_prompt || "-"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border p-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                  Storyline
-                </p>
-
-                <p className="text-slate-700 mt-3 whitespace-pre-wrap">
-                  {selectedIdea.storyline || "-"}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border p-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
-                  Notes
-                </p>
-
-                <p className="text-slate-700 mt-3 whitespace-pre-wrap">
-                  {selectedIdea.notes || "-"}
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                {selectedIdea.source_video_url && (
-                  <a
-                    href={selectedIdea.source_video_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl border px-5 py-3 font-bold inline-flex items-center gap-2 hover:bg-slate-50"
-                  >
-                    <ArrowUpRight size={17} />
-                    Source
-                  </a>
-                )}
-
-                <button
-                  onClick={() => copyIdeaBrief(selectedIdea)}
-                  className="rounded-2xl border px-5 py-3 font-bold inline-flex items-center gap-2 hover:bg-slate-50"
-                >
-                  <Copy size={17} />
-                  Copy Brief
-                </button>
-
-                <button
-                  onClick={() => {
-                    openEdit(selectedIdea);
-                    setSelectedIdea(null);
-                  }}
-                  className="rounded-2xl bg-zinc-950 text-white px-5 py-3 font-bold inline-flex items-center gap-2"
-                >
-                  <Edit3 size={17} />
-                  Edit
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <IdeaDetailCommandCenter
+          idea={selectedIdea}
+          onClose={() => setSelectedIdea(null)}
+          onEdit={() => {
+            openEdit(selectedIdea);
+            setSelectedIdea(null);
+          }}
+          onDeleted={() => {
+            setSelectedIdea(null);
+            router.refresh();
+          }}
+        />
       )}
 
       {editingIdea && editForm && (
