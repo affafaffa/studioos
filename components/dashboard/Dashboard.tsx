@@ -1,15 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import KPICard from "./KPICard";
-import IdeaBank from "./IdeaBank";
-import IdeaWorkspace from "@/components/ideas/IdeaWorkspace";
 import AddIdeaButton from "./AddIdeaButton";
 import AIBrainstormPanel from "./AIBrainstormPanel";
-import VideoPipeline from "@/components/videos/VideoPipeline";
+import DashboardHome from "@/components/dashboard/DashboardHome";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
 import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
 import AnalystWorkspace from "@/components/competitors/AnalystWorkspace";
+import IdeaWorkspace from "@/components/ideas/IdeaWorkspace";
+import StudioCalendar from "@/components/calendar/StudioCalendar";
+import StudioSettings from "@/components/settings/StudioSettings";
 import type { Idea } from "@/types/idea";
 import type { Video as StudioVideo } from "@/types/video";
 import type {
@@ -31,16 +31,6 @@ type Props = {
   highlightedIdeaId?: number | null;
   onOpenIdeaFromRemix?: (ideaId: number) => void;
 };
-
-function formatNumber(value: number) {
-  return value.toLocaleString("en-US");
-}
-
-function formatMoney(value: number) {
-  return `$${value.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
-  })}`;
-}
 
 function SectionHeader({
   title,
@@ -66,28 +56,6 @@ function SectionHeader({
   );
 }
 
-function PlaceholderView({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="bg-white rounded-2xl shadow p-10">
-      <h2 className="text-2xl font-bold">{title}</h2>
-
-      <p className="text-gray-500 mt-3 max-w-2xl">
-        {description}
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-dashed p-8 text-gray-500">
-        This module will be built in the next sprints.
-      </div>
-    </div>
-  );
-}
-
 export default function Dashboard({
   ideas = [],
   videos = [],
@@ -96,6 +64,7 @@ export default function Dashboard({
   competitorVideos = [],
   competitorRemixes = [],
   activeView,
+  onChangeView,
   highlightedIdeaId = null,
   onOpenIdeaFromRemix,
 }: Props) {
@@ -106,74 +75,24 @@ export default function Dashboard({
   const safeCompetitorVideos = competitorVideos || [];
   const safeCompetitorRemixes = competitorRemixes || [];
 
-  const totalIdeas = safeIdeas.length;
+  if (activeView === "dashboard") {
+    return (
+      <div className="p-8 bg-gray-100 min-h-screen">
+        <SectionHeader
+          title="Dashboard"
+          description="Your simplified StudioOS command center."
+        />
 
-  const publishedIdeas = safeIdeas.filter(
-    (idea) => idea.status === "Published"
-  );
-
-  const publishedCount = publishedIdeas.length;
-
-  const totalRevenue = safeIdeas.reduce(
-    (sum, idea) => sum + Number(idea.revenue || 0),
-    0
-  );
-
-  const averageCtr =
-    publishedIdeas.length > 0
-      ? publishedIdeas.reduce(
-          (sum, idea) => sum + Number(idea.ctr || 0),
-          0
-        ) / publishedIdeas.length
-      : 0;
-
-  const topIdeas = [...safeIdeas]
-    .sort(
-      (a, b) =>
-        Number(b.views || 0) - Number(a.views || 0)
-    )
-    .slice(0, 5);
-
-  const themeStats = Array.from(
-    safeIdeas.reduce((map, idea) => {
-      const theme = idea.theme || "Unknown";
-      map.set(theme, (map.get(theme) || 0) + 1);
-      return map;
-    }, new Map<string, number>())
-  ).sort((a, b) => b[1] - a[1]);
-
-  const videoRevenue = safeVideos.reduce(
-    (sum, video) => sum + Number(video.revenue || 0),
-    0
-  );
-
-  const publishedVideos = safeVideos.filter(
-    (video) => video.status === "Published"
-  );
-
-  const kpiCards = (
-    <div className="grid grid-cols-4 gap-6 mb-8">
-      <KPICard
-        title="Ideas"
-        value={formatNumber(totalIdeas)}
-      />
-
-      <KPICard
-        title="Published Ideas"
-        value={formatNumber(publishedCount)}
-      />
-
-      <KPICard
-        title="Idea Revenue"
-        value={formatMoney(totalRevenue)}
-      />
-
-      <KPICard
-        title="Avg CTR"
-        value={`${averageCtr.toFixed(1)}%`}
-      />
-    </div>
-  );
+        <DashboardHome
+          ideas={safeIdeas}
+          competitorGroups={safeCompetitorGroups}
+          competitorChannels={safeCompetitorChannels}
+          competitorVideos={safeCompetitorVideos}
+          onChangeView={onChangeView || (() => {})}
+        />
+      </div>
+    );
+  }
 
   if (activeView === "ideas") {
     return (
@@ -190,22 +109,6 @@ export default function Dashboard({
           competitorGroups={safeCompetitorGroups}
           competitorChannels={safeCompetitorChannels}
           competitorVideos={safeCompetitorVideos}
-        />
-      </div>
-    );
-  }
-
-  if (activeView === "videos") {
-    return (
-      <div className="p-8 bg-gray-100 min-h-screen">
-        <SectionHeader
-          title="Videos"
-          description="Track video production, publishing and performance."
-        />
-
-        <VideoPipeline
-          ideas={safeIdeas}
-          videos={safeVideos}
         />
       </div>
     );
@@ -253,103 +156,6 @@ export default function Dashboard({
     );
   }
 
-  if (activeView === "analytics") {
-    return (
-      <div className="p-8 bg-gray-100 min-h-screen">
-        <SectionHeader
-          title="Analytics"
-          description="Quick overview of idea, video and competitor tracking."
-        />
-
-        {kpiCards}
-
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          <KPICard
-            title="Videos"
-            value={formatNumber(safeVideos.length)}
-          />
-
-          <KPICard
-            title="Published Videos"
-            value={formatNumber(publishedVideos.length)}
-          />
-
-          <KPICard
-            title="Competitor Channels"
-            value={formatNumber(safeCompetitorChannels.length)}
-          />
-
-          <KPICard
-            title="Total Revenue"
-            value={formatMoney(totalRevenue + videoRevenue)}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl shadow p-6">
-            <h2 className="text-xl font-bold mb-4">
-              Top Ideas by Views
-            </h2>
-
-            <div className="space-y-4">
-              {topIdeas.map((idea) => (
-                <div
-                  key={idea.id}
-                  className="flex items-center justify-between border-b pb-3 last:border-b-0"
-                >
-                  <div>
-                    <p className="font-medium">{idea.title}</p>
-
-                    <p className="text-sm text-gray-500">
-                      {idea.theme || "-"} · {idea.status || "Idea"}
-                    </p>
-                  </div>
-
-                  <p className="font-bold">
-                    {Number(idea.views || 0).toLocaleString("en-US")}
-                  </p>
-                </div>
-              ))}
-
-              {topIdeas.length === 0 && (
-                <p className="text-sm text-gray-500">
-                  No ideas yet.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <h2 className="text-xl font-bold mb-4">
-              Ideas by Theme
-            </h2>
-
-            <div className="space-y-4">
-              {themeStats.map(([theme, count]) => (
-                <div
-                  key={theme}
-                  className="flex items-center justify-between border-b pb-3 last:border-b-0"
-                >
-                  <p className="font-medium">{theme}</p>
-
-                  <p className="font-bold">
-                    {count} ideas
-                  </p>
-                </div>
-              ))}
-
-              {themeStats.length === 0 && (
-                <p className="text-sm text-gray-500">
-                  No theme data yet.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (activeView === "ai") {
     return (
       <div className="p-8 bg-gray-100 min-h-screen">
@@ -368,13 +174,10 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Calendar"
-          description="Plan publishing schedule and production deadlines."
+          description="Plan ideas by production status and priority."
         />
 
-        <PlaceholderView
-          title="Content Calendar"
-          description="This section will later show upload schedule, production deadlines and batch planning for your channels."
-        />
+        <StudioCalendar ideas={safeIdeas} />
       </div>
     );
   }
@@ -384,12 +187,14 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Settings"
-          description="StudioOS configuration and workspace settings."
+          description="StudioOS configuration, preferences and workspace health."
         />
 
-        <PlaceholderView
-          title="Workspace Settings"
-          description="This section will later manage channels, themes, languages, AI settings, Supabase security and team access."
+        <StudioSettings
+          ideas={safeIdeas}
+          competitorGroups={safeCompetitorGroups}
+          competitorChannels={safeCompetitorChannels}
+          competitorVideos={safeCompetitorVideos}
         />
       </div>
     );
@@ -399,17 +204,15 @@ export default function Dashboard({
     <div className="p-8 bg-gray-100 min-h-screen">
       <SectionHeader
         title="Dashboard"
-        description="Your YouTube studio command center."
-        action={<AddIdeaButton ideas={safeIdeas} />}
+        description="Your simplified StudioOS command center."
       />
 
-      {kpiCards}
-
-      <AIBrainstormPanel existingIdeas={safeIdeas} />
-
-      <IdeaBank
+      <DashboardHome
         ideas={safeIdeas}
-        highlightedIdeaId={highlightedIdeaId}
+        competitorGroups={safeCompetitorGroups}
+        competitorChannels={safeCompetitorChannels}
+        competitorVideos={safeCompetitorVideos}
+        onChangeView={onChangeView || (() => {})}
       />
     </div>
   );

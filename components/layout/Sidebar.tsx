@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  BarChart3,
   Bot,
   CalendarDays,
   ChevronDown,
@@ -22,7 +21,6 @@ import {
   Shuffle,
   Sparkles,
   Target,
-  Video,
   WandSparkles,
 } from "lucide-react";
 import type { ActiveView } from "@/types/navigation";
@@ -65,11 +63,6 @@ const navItems: {
     icon: Lightbulb,
   },
   {
-    id: "videos",
-    label: "Videos",
-    icon: Video,
-  },
-  {
     id: "competitors",
     label: "Competitors",
     icon: FolderSearch,
@@ -78,11 +71,6 @@ const navItems: {
     id: "analyst",
     label: "Analyst",
     icon: Target,
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    icon: BarChart3,
   },
   {
     id: "ai",

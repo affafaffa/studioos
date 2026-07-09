@@ -1,27 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import Dashboard from "@/components/dashboard/Dashboard";
 import type { Idea } from "@/types/idea";
-import type { Video } from "@/types/video";
+import type { Video as StudioVideo } from "@/types/video";
 import type {
   CompetitorChannel,
   CompetitorGroup,
-  CompetitorRemix,
   CompetitorVideo,
 } from "@/types/competitor";
 import type { ActiveView } from "@/types/navigation";
 
 type Props = {
   ideas: Idea[];
-  videos: Video[];
+  videos: StudioVideo[];
   competitorGroups: CompetitorGroup[];
   competitorChannels: CompetitorChannel[];
   competitorVideos: CompetitorVideo[];
-  competitorRemixes: CompetitorRemix[];
+  competitorRemixes?: any[];
 };
+
+function normalizeView(value: string | null): ActiveView {
+  if (
+    value === "dashboard" ||
+    value === "ideas" ||
+    value === "competitors" ||
+    value === "analyst" ||
+    value === "ai" ||
+    value === "calendar" ||
+    value === "settings"
+  ) {
+    return value;
+  }
+
+  return "dashboard";
+}
 
 export default function AppShell({
   ideas,
@@ -29,7 +44,7 @@ export default function AppShell({
   competitorGroups,
   competitorChannels,
   competitorVideos,
-  competitorRemixes,
+  competitorRemixes = [],
 }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>("dashboard");
@@ -37,48 +52,73 @@ export default function AppShell({
   const [highlightedIdeaId, setHighlightedIdeaId] =
     useState<number | null>(null);
 
-  function handleHighlightIdea(ideaId: number) {
-    setHighlightedIdeaId(null);
+  useEffect(() => {
+    const savedView = window.localStorage.getItem(
+      "studioos-active-view"
+    );
 
-    setTimeout(() => {
-      setHighlightedIdeaId(ideaId);
-    }, 50);
+    const nextView = normalizeView(savedView);
+
+    setActiveView(nextView);
+
+    if (savedView !== nextView) {
+      window.localStorage.setItem(
+        "studioos-active-view",
+        nextView
+      );
+    }
+  }, []);
+
+  function handleChangeView(view: ActiveView) {
+    setActiveView(view);
+
+    window.localStorage.setItem(
+      "studioos-active-view",
+      view
+    );
   }
 
   function handleOpenIdeaFromRemix(ideaId: number) {
-    setActiveView("ideas");
-    handleHighlightIdea(ideaId);
+    setHighlightedIdeaId(ideaId);
+    handleChangeView("ideas");
+
+    window.localStorage.setItem(
+      "studioos-idea-section",
+      "idea-bank"
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("studioos-idea-section-change", {
+        detail: {
+          section: "idea-bank",
+        },
+      })
+    );
   }
 
   return (
-    <main className="flex h-screen bg-gray-100 ml-[252px]">
+    <div className="min-h-screen bg-gray-100">
       <Sidebar
         activeView={activeView}
-        onChangeView={setActiveView}
+        onChangeView={handleChangeView}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar
-          ideas={ideas}
-          onChangeView={setActiveView}
-          onHighlightIdea={handleHighlightIdea}
-        />
+      <Topbar activeView={activeView} />
 
-        <div className="flex-1 overflow-auto">
-          <Dashboard
-            ideas={ideas}
-            videos={videos}
-            competitorGroups={competitorGroups}
-            competitorChannels={competitorChannels}
-            competitorVideos={competitorVideos}
-            competitorRemixes={competitorRemixes}
-            activeView={activeView}
-            onChangeView={setActiveView}
-            highlightedIdeaId={highlightedIdeaId}
-            onOpenIdeaFromRemix={handleOpenIdeaFromRemix}
-          />
-        </div>
-      </div>
-    </main>
+      <main className="ml-[252px] pt-16">
+        <Dashboard
+          ideas={ideas}
+          videos={videos}
+          competitorGroups={competitorGroups}
+          competitorChannels={competitorChannels}
+          competitorVideos={competitorVideos}
+          competitorRemixes={competitorRemixes}
+          activeView={activeView}
+          onChangeView={handleChangeView}
+          highlightedIdeaId={highlightedIdeaId}
+          onOpenIdeaFromRemix={handleOpenIdeaFromRemix}
+        />
+      </main>
+    </div>
   );
 }
