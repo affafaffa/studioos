@@ -69,11 +69,16 @@ export default function Dashboard({
   onOpenIdeaFromRemix,
 }: Props) {
   const safeIdeas = ideas || [];
-  const safeVideos = videos || [];
   const safeCompetitorGroups = competitorGroups || [];
   const safeCompetitorChannels = competitorChannels || [];
   const safeCompetitorVideos = competitorVideos || [];
   const safeCompetitorRemixes = competitorRemixes || [];
+
+  function openCalendar() {
+    if (onChangeView) {
+      onChangeView("calendar");
+    }
+  }
 
   if (activeView === "dashboard") {
     return (
@@ -99,7 +104,7 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Ideas"
-          description="Build ideas through a structured creative architecture: story pillar, theme cluster, niche and specific concept."
+          description="Create, review and plan ideas through one clear workflow."
           action={<AddIdeaButton ideas={safeIdeas} />}
         />
 
@@ -109,6 +114,7 @@ export default function Dashboard({
           competitorGroups={safeCompetitorGroups}
           competitorChannels={safeCompetitorChannels}
           competitorVideos={safeCompetitorVideos}
+          onOpenCalendar={openCalendar}
         />
       </div>
     );
@@ -174,7 +180,7 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Calendar"
-          description="Plan ideas by production status and priority."
+          description="Drag ideas across the production workflow."
         />
 
         <StudioCalendar ideas={safeIdeas} />

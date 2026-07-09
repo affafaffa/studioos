@@ -18,7 +18,6 @@ import {
   Radar,
   Rocket,
   Settings,
-  Shuffle,
   Sparkles,
   Target,
   WandSparkles,
@@ -26,10 +25,9 @@ import {
 import type { ActiveView } from "@/types/navigation";
 
 type IdeaSection =
-  | "strategy-map"
-  | "brainstorm-flow"
-  | "remix-rule-engine"
-  | "idea-bank";
+  | "create-ideas"
+  | "review-ideas"
+  | "strategy-map";
 
 type CompetitorSection =
   | "market-share"
@@ -96,28 +94,22 @@ const ideaSections: {
   colorClass: string;
 }[] = [
   {
-    id: "strategy-map",
-    label: "Strategy Map",
-    icon: Network,
-    colorClass: "text-purple-400",
-  },
-  {
-    id: "brainstorm-flow",
-    label: "Brainstorm Flow",
+    id: "create-ideas",
+    label: "Create Ideas",
     icon: WandSparkles,
     colorClass: "text-rose-400",
   },
   {
-    id: "remix-rule-engine",
-    label: "Remix Rule Engine",
-    icon: Shuffle,
+    id: "review-ideas",
+    label: "Review Ideas",
+    icon: Lightbulb,
     colorClass: "text-amber-400",
   },
   {
-    id: "idea-bank",
-    label: "Idea Bank",
-    icon: Database,
-    colorClass: "text-blue-400",
+    id: "strategy-map",
+    label: "Strategy Map",
+    icon: Network,
+    colorClass: "text-purple-400",
   },
 ];
 
@@ -179,12 +171,46 @@ const analystSections: {
   },
 ];
 
+function normalizeIdeaSection(value: string | null): IdeaSection {
+  if (
+    value === "create-ideas" ||
+    value === "review-ideas" ||
+    value === "strategy-map"
+  ) {
+    return value;
+  }
+
+  return "create-ideas";
+}
+
+function normalizeCompetitorSection(value: string | null): CompetitorSection {
+  if (
+    value === "market-share" ||
+    value === "groups" ||
+    value === "keyword-radar" ||
+    value === "remix-lab" ||
+    value === "video-metadata"
+  ) {
+    return value;
+  }
+
+  return "market-share";
+}
+
+function normalizeAnalystSection(value: string | null): AnalystSection {
+  if (value === "group-drilldown" || value === "action-center") {
+    return value;
+  }
+
+  return "group-drilldown";
+}
+
 export default function Sidebar({
   activeView,
   onChangeView,
 }: Props) {
   const [activeIdeaSection, setActiveIdeaSection] =
-    useState<IdeaSection>("strategy-map");
+    useState<IdeaSection>("create-ideas");
 
   const [activeCompetitorSection, setActiveCompetitorSection] =
     useState<CompetitorSection>("market-share");
@@ -193,38 +219,32 @@ export default function Sidebar({
     useState<AnalystSection>("group-drilldown");
 
   useEffect(() => {
-    const savedIdeaSection = window.localStorage.getItem(
-      "studioos-idea-section"
-    ) as IdeaSection | null;
+    setActiveIdeaSection(
+      normalizeIdeaSection(
+        window.localStorage.getItem("studioos-idea-section")
+      )
+    );
 
-    if (savedIdeaSection) {
-      setActiveIdeaSection(savedIdeaSection);
-    }
+    setActiveCompetitorSection(
+      normalizeCompetitorSection(
+        window.localStorage.getItem("studioos-competitor-section")
+      )
+    );
 
-    const savedCompetitorSection = window.localStorage.getItem(
-      "studioos-competitor-section"
-    ) as CompetitorSection | null;
-
-    if (savedCompetitorSection) {
-      setActiveCompetitorSection(savedCompetitorSection);
-    }
-
-    const savedAnalystSection = window.localStorage.getItem(
-      "studioos-analyst-section"
-    ) as AnalystSection | null;
-
-    if (savedAnalystSection) {
-      setActiveAnalystSection(savedAnalystSection);
-    }
+    setActiveAnalystSection(
+      normalizeAnalystSection(
+        window.localStorage.getItem("studioos-analyst-section")
+      )
+    );
 
     function handleIdeaSectionChange(event: Event) {
       const customEvent = event as CustomEvent<{
         section?: IdeaSection;
       }>;
 
-      if (customEvent.detail?.section) {
-        setActiveIdeaSection(customEvent.detail.section);
-      }
+      setActiveIdeaSection(
+        normalizeIdeaSection(customEvent.detail?.section || null)
+      );
     }
 
     function handleCompetitorSectionChange(event: Event) {
@@ -232,9 +252,9 @@ export default function Sidebar({
         section?: CompetitorSection;
       }>;
 
-      if (customEvent.detail?.section) {
-        setActiveCompetitorSection(customEvent.detail.section);
-      }
+      setActiveCompetitorSection(
+        normalizeCompetitorSection(customEvent.detail?.section || null)
+      );
     }
 
     function handleAnalystSectionChange(event: Event) {
@@ -242,9 +262,9 @@ export default function Sidebar({
         section?: AnalystSection;
       }>;
 
-      if (customEvent.detail?.section) {
-        setActiveAnalystSection(customEvent.detail.section);
-      }
+      setActiveAnalystSection(
+        normalizeAnalystSection(customEvent.detail?.section || null)
+      );
     }
 
     window.addEventListener(
@@ -280,63 +300,11 @@ export default function Sidebar({
     };
   }, []);
 
-  function handleMainClick(view: ActiveView) {
-    onChangeView(view);
-
-    if (view === "ideas") {
-      window.localStorage.setItem(
-        "studioos-idea-section",
-        activeIdeaSection
-      );
-
-      window.dispatchEvent(
-        new CustomEvent("studioos-idea-section-change", {
-          detail: {
-            section: activeIdeaSection,
-          },
-        })
-      );
-    }
-
-    if (view === "competitors") {
-      window.localStorage.setItem(
-        "studioos-competitor-section",
-        activeCompetitorSection
-      );
-
-      window.dispatchEvent(
-        new CustomEvent("studioos-competitor-section-change", {
-          detail: {
-            section: activeCompetitorSection,
-          },
-        })
-      );
-    }
-
-    if (view === "analyst") {
-      window.localStorage.setItem(
-        "studioos-analyst-section",
-        activeAnalystSection
-      );
-
-      window.dispatchEvent(
-        new CustomEvent("studioos-analyst-section-change", {
-          detail: {
-            section: activeAnalystSection,
-          },
-        })
-      );
-    }
-  }
-
-  function handleIdeaSectionClick(section: IdeaSection) {
+  function changeIdeaSection(section: IdeaSection) {
     setActiveIdeaSection(section);
     onChangeView("ideas");
 
-    window.localStorage.setItem(
-      "studioos-idea-section",
-      section
-    );
+    window.localStorage.setItem("studioos-idea-section", section);
 
     window.dispatchEvent(
       new CustomEvent("studioos-idea-section-change", {
@@ -347,14 +315,11 @@ export default function Sidebar({
     );
   }
 
-  function handleCompetitorSectionClick(section: CompetitorSection) {
+  function changeCompetitorSection(section: CompetitorSection) {
     setActiveCompetitorSection(section);
     onChangeView("competitors");
 
-    window.localStorage.setItem(
-      "studioos-competitor-section",
-      section
-    );
+    window.localStorage.setItem("studioos-competitor-section", section);
 
     window.dispatchEvent(
       new CustomEvent("studioos-competitor-section-change", {
@@ -365,14 +330,11 @@ export default function Sidebar({
     );
   }
 
-  function handleAnalystSectionClick(section: AnalystSection) {
+  function changeAnalystSection(section: AnalystSection) {
     setActiveAnalystSection(section);
     onChangeView("analyst");
 
-    window.localStorage.setItem(
-      "studioos-analyst-section",
-      section
-    );
+    window.localStorage.setItem("studioos-analyst-section", section);
 
     window.dispatchEvent(
       new CustomEvent("studioos-analyst-section-change", {
@@ -381,6 +343,22 @@ export default function Sidebar({
         },
       })
     );
+  }
+
+  function handleMainClick(view: ActiveView) {
+    onChangeView(view);
+
+    if (view === "ideas") {
+      changeIdeaSection(activeIdeaSection);
+    }
+
+    if (view === "competitors") {
+      changeCompetitorSection(activeCompetitorSection);
+    }
+
+    if (view === "analyst") {
+      changeAnalystSection(activeAnalystSection);
+    }
   }
 
   const ideasOpen = activeView === "ideas";
@@ -459,9 +437,7 @@ export default function Sidebar({
                     return (
                       <button
                         key={section.id}
-                        onClick={() =>
-                          handleIdeaSectionClick(section.id)
-                        }
+                        onClick={() => changeIdeaSection(section.id)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
                           isSectionActive
                             ? "bg-zinc-800 text-white"
@@ -493,7 +469,7 @@ export default function Sidebar({
                       <button
                         key={section.id}
                         onClick={() =>
-                          handleCompetitorSectionClick(section.id)
+                          changeCompetitorSection(section.id)
                         }
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
                           isSectionActive
@@ -525,9 +501,7 @@ export default function Sidebar({
                     return (
                       <button
                         key={section.id}
-                        onClick={() =>
-                          handleAnalystSectionClick(section.id)
-                        }
+                        onClick={() => changeAnalystSection(section.id)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
                           isSectionActive
                             ? "bg-zinc-800 text-white"

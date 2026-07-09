@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react";
 import {
-  Database,
+  Lightbulb,
   Network,
-  Shuffle,
   WandSparkles,
 } from "lucide-react";
-import BrainstormFlowV2 from "@/components/ideas/BrainstormFlowV2";
+import CreateIdeasWorkspace from "@/components/ideas/CreateIdeasWorkspace";
 import IdeaArchitectureMap from "@/components/ideas/IdeaArchitectureMap";
-import RemixRuleEngine from "@/components/ideas/RemixRuleEngine";
 import IdeaBank from "@/components/dashboard/IdeaBank";
 import type { Idea } from "@/types/idea";
 import type {
@@ -24,56 +22,58 @@ type Props = {
   competitorGroups?: CompetitorGroup[];
   competitorChannels?: CompetitorChannel[];
   competitorVideos?: CompetitorVideo[];
+  onOpenCalendar?: () => void;
 };
 
 type IdeaSection =
-  | "strategy-map"
-  | "brainstorm-flow"
-  | "remix-rule-engine"
-  | "idea-bank";
+  | "create-ideas"
+  | "review-ideas"
+  | "strategy-map";
 
 const sections = {
-  "strategy-map": {
-    label: "Strategy Map",
+  "create-ideas": {
+    label: "Create Ideas",
     description:
-      "View ideas by Story Pillar → Theme Cluster → Niche → Specific Idea.",
-    icon: Network,
-    bg: "bg-purple-50",
-    border: "border-purple-200",
-    text: "text-purple-700",
-    color: "from-purple-500 to-fuchsia-500",
-  },
-  "brainstorm-flow": {
-    label: "Brainstorm Flow",
-    description:
-      "Generate new ideas through a structured creative hierarchy.",
+      "Generate new ideas from market signals or competitor sources.",
     icon: WandSparkles,
     bg: "bg-rose-50",
     border: "border-rose-200",
     text: "text-rose-700",
     color: "from-rose-500 to-orange-500",
   },
-  "remix-rule-engine": {
-    label: "Remix Rule Engine",
+  "review-ideas": {
+    label: "Review Ideas",
     description:
-      "Turn source videos and ideas into original remixes using strict remix rules.",
-    icon: Shuffle,
+      "Choose which ideas are worth planning and move them to Calendar.",
+    icon: Lightbulb,
     bg: "bg-amber-50",
     border: "border-amber-200",
     text: "text-amber-700",
     color: "from-amber-500 to-yellow-500",
   },
-  "idea-bank": {
-    label: "Idea Bank",
+  "strategy-map": {
+    label: "Strategy Map",
     description:
-      "Classic table view for editing, viewing and managing individual ideas.",
-    icon: Database,
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    text: "text-blue-700",
-    color: "from-blue-500 to-cyan-500",
+      "See the full architecture: Story Pillar → Theme Cluster → Niche → Idea.",
+    icon: Network,
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    text: "text-purple-700",
+    color: "from-purple-500 to-fuchsia-500",
   },
 };
+
+function normalizeSection(value: string | null): IdeaSection {
+  if (
+    value === "create-ideas" ||
+    value === "review-ideas" ||
+    value === "strategy-map"
+  ) {
+    return value;
+  }
+
+  return "create-ideas";
+}
 
 export default function IdeaWorkspace({
   ideas,
@@ -81,27 +81,26 @@ export default function IdeaWorkspace({
   competitorGroups = [],
   competitorChannels = [],
   competitorVideos = [],
+  onOpenCalendar,
 }: Props) {
   const [activeSection, setActiveSection] =
-    useState<IdeaSection>("strategy-map");
+    useState<IdeaSection>("create-ideas");
 
   useEffect(() => {
-    const savedSection = window.localStorage.getItem(
-      "studioos-idea-section"
-    ) as IdeaSection | null;
+    const savedSection = normalizeSection(
+      window.localStorage.getItem("studioos-idea-section")
+    );
 
-    if (savedSection) {
-      setActiveSection(savedSection);
-    }
+    setActiveSection(savedSection);
 
     function handleSectionChange(event: Event) {
       const customEvent = event as CustomEvent<{
         section?: IdeaSection;
       }>;
 
-      if (customEvent.detail?.section) {
-        setActiveSection(customEvent.detail.section);
-      }
+      setActiveSection(
+        normalizeSection(customEvent.detail?.section || null)
+      );
     }
 
     window.addEventListener(
@@ -135,7 +134,7 @@ export default function IdeaWorkspace({
 
             <div>
               <p className={`text-xs font-bold uppercase tracking-wide ${selectedStyle.text}`}>
-                Ideas / Current Page
+                Ideas Workflow
               </p>
 
               <h2 className="text-2xl font-bold mt-2">
@@ -148,28 +147,24 @@ export default function IdeaWorkspace({
             </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-xs text-slate-500">
-              Total Ideas
-            </p>
-
-            <p className="text-2xl font-bold">
-              {ideas.length.toLocaleString("en-US")}
-            </p>
+          <div className="hidden xl:flex items-center gap-2 text-sm font-bold text-slate-500">
+            <span className={activeSection === "create-ideas" ? "text-rose-700" : ""}>
+              Create
+            </span>
+            <span>→</span>
+            <span className={activeSection === "review-ideas" ? "text-amber-700" : ""}>
+              Review
+            </span>
+            <span>→</span>
+            <span>
+              Plan
+            </span>
           </div>
         </div>
       </div>
 
-      {activeSection === "strategy-map" && (
-        <IdeaArchitectureMap ideas={ideas} />
-      )}
-
-      {activeSection === "brainstorm-flow" && (
-        <BrainstormFlowV2 ideas={ideas} />
-      )}
-
-      {activeSection === "remix-rule-engine" && (
-        <RemixRuleEngine
+      {activeSection === "create-ideas" && (
+        <CreateIdeasWorkspace
           ideas={ideas}
           competitorGroups={competitorGroups}
           competitorChannels={competitorChannels}
@@ -177,11 +172,16 @@ export default function IdeaWorkspace({
         />
       )}
 
-      {activeSection === "idea-bank" && (
+      {activeSection === "review-ideas" && (
         <IdeaBank
           ideas={ideas}
           highlightedIdeaId={highlightedIdeaId}
+          onOpenCalendar={onOpenCalendar}
         />
+      )}
+
+      {activeSection === "strategy-map" && (
+        <IdeaArchitectureMap ideas={ideas} />
       )}
     </div>
   );
