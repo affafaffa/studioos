@@ -8,7 +8,7 @@ import AIBrainstormPanel from "./AIBrainstormPanel";
 import VideoPipeline from "@/components/videos/VideoPipeline";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
 import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
-import CompetitorGroupAnalyst from "@/components/competitors/CompetitorGroupAnalyst";
+import AnalystWorkspace from "@/components/competitors/AnalystWorkspace";
 import type { Idea } from "@/types/idea";
 import type { Video as StudioVideo } from "@/types/video";
 import type {
@@ -237,10 +237,10 @@ export default function Dashboard({
       <div className="p-8 bg-gray-100 min-h-screen">
         <SectionHeader
           title="Analyst"
-          description="Drill down into competitor groups, traffic, top channels, top videos and keyword opportunities."
+          description="Analyze competitor groups and turn research signals into actions."
         />
 
-        <CompetitorGroupAnalyst
+        <AnalystWorkspace
           competitorGroups={safeCompetitorGroups}
           competitorChannels={safeCompetitorChannels}
           competitorVideos={safeCompetitorVideos}

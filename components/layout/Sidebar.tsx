@@ -13,8 +13,10 @@ import {
   FolderSearch,
   LayoutDashboard,
   Lightbulb,
+  LineChart,
   PieChart,
   Radar,
+  Rocket,
   Settings,
   Sparkles,
   Target,
@@ -28,6 +30,10 @@ type CompetitorSection =
   | "keyword-radar"
   | "remix-lab"
   | "video-metadata";
+
+type AnalystSection =
+  | "group-drilldown"
+  | "action-center";
 
 type Props = {
   activeView: ActiveView;
@@ -124,6 +130,26 @@ const competitorSections: {
   },
 ];
 
+const analystSections: {
+  id: AnalystSection;
+  label: string;
+  icon: LucideIcon;
+  colorClass: string;
+}[] = [
+  {
+    id: "group-drilldown",
+    label: "Group Drilldown",
+    icon: LineChart,
+    colorClass: "text-blue-400",
+  },
+  {
+    id: "action-center",
+    label: "Action Center",
+    icon: Rocket,
+    colorClass: "text-rose-400",
+  },
+];
+
 export default function Sidebar({
   activeView,
   onChangeView,
@@ -131,16 +157,27 @@ export default function Sidebar({
   const [activeCompetitorSection, setActiveCompetitorSection] =
     useState<CompetitorSection>("market-share");
 
+  const [activeAnalystSection, setActiveAnalystSection] =
+    useState<AnalystSection>("group-drilldown");
+
   useEffect(() => {
-    const savedSection = window.localStorage.getItem(
+    const savedCompetitorSection = window.localStorage.getItem(
       "studioos-competitor-section"
     ) as CompetitorSection | null;
 
-    if (savedSection) {
-      setActiveCompetitorSection(savedSection);
+    if (savedCompetitorSection) {
+      setActiveCompetitorSection(savedCompetitorSection);
     }
 
-    function handleSectionChange(event: Event) {
+    const savedAnalystSection = window.localStorage.getItem(
+      "studioos-analyst-section"
+    ) as AnalystSection | null;
+
+    if (savedAnalystSection) {
+      setActiveAnalystSection(savedAnalystSection);
+    }
+
+    function handleCompetitorSectionChange(event: Event) {
       const customEvent = event as CustomEvent<{
         section?: CompetitorSection;
       }>;
@@ -150,15 +187,35 @@ export default function Sidebar({
       }
     }
 
+    function handleAnalystSectionChange(event: Event) {
+      const customEvent = event as CustomEvent<{
+        section?: AnalystSection;
+      }>;
+
+      if (customEvent.detail?.section) {
+        setActiveAnalystSection(customEvent.detail.section);
+      }
+    }
+
     window.addEventListener(
       "studioos-competitor-section-change",
-      handleSectionChange
+      handleCompetitorSectionChange
+    );
+
+    window.addEventListener(
+      "studioos-analyst-section-change",
+      handleAnalystSectionChange
     );
 
     return () => {
       window.removeEventListener(
         "studioos-competitor-section-change",
-        handleSectionChange
+        handleCompetitorSectionChange
+      );
+
+      window.removeEventListener(
+        "studioos-analyst-section-change",
+        handleAnalystSectionChange
       );
     };
   }, []);
@@ -176,6 +233,21 @@ export default function Sidebar({
         new CustomEvent("studioos-competitor-section-change", {
           detail: {
             section: activeCompetitorSection,
+          },
+        })
+      );
+    }
+
+    if (view === "analyst") {
+      window.localStorage.setItem(
+        "studioos-analyst-section",
+        activeAnalystSection
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("studioos-analyst-section-change", {
+          detail: {
+            section: activeAnalystSection,
           },
         })
       );
@@ -200,7 +272,26 @@ export default function Sidebar({
     );
   }
 
+  function handleAnalystSectionClick(section: AnalystSection) {
+    setActiveAnalystSection(section);
+    onChangeView("analyst");
+
+    window.localStorage.setItem(
+      "studioos-analyst-section",
+      section
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("studioos-analyst-section-change", {
+        detail: {
+          section,
+        },
+      })
+    );
+  }
+
   const competitorOpen = activeView === "competitors";
+  const analystOpen = activeView === "analyst";
 
   return (
     <aside className="w-[252px] bg-zinc-950 text-white min-h-screen fixed left-0 top-0 border-r border-zinc-800 z-40">
@@ -221,6 +312,7 @@ export default function Sidebar({
           const Icon = item.icon;
           const isActive = activeView === item.id;
           const isCompetitor = item.id === "competitors";
+          const isAnalyst = item.id === "analyst";
 
           return (
             <div key={item.id}>
@@ -246,6 +338,13 @@ export default function Sidebar({
                   ) : (
                     <ChevronRight size={16} />
                   ))}
+
+                {isAnalyst &&
+                  (analystOpen ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  ))}
               </button>
 
               {isCompetitor && competitorOpen && (
@@ -260,6 +359,39 @@ export default function Sidebar({
                         key={section.id}
                         onClick={() =>
                           handleCompetitorSectionClick(section.id)
+                        }
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
+                          isSectionActive
+                            ? "bg-zinc-800 text-white"
+                            : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                        }`}
+                      >
+                        <SectionIcon
+                          size={16}
+                          className={section.colorClass}
+                        />
+
+                        <span className="text-[13.5px] font-semibold leading-5">
+                          {section.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {isAnalyst && analystOpen && (
+                <div className="mt-2 ml-3 pl-3 border-l border-zinc-800 space-y-1">
+                  {analystSections.map((section) => {
+                    const SectionIcon = section.icon;
+                    const isSectionActive =
+                      activeAnalystSection === section.id;
+
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() =>
+                          handleAnalystSectionClick(section.id)
                         }
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
                           isSectionActive
