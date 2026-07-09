@@ -4,7 +4,9 @@ import { useState } from "react";
 import {
   Database,
   Network,
+  WandSparkles,
 } from "lucide-react";
+import BrainstormFlowV2 from "@/components/ideas/BrainstormFlowV2";
 import IdeaArchitectureMap from "@/components/ideas/IdeaArchitectureMap";
 import IdeaBank from "@/components/dashboard/IdeaBank";
 import type { Idea } from "@/types/idea";
@@ -14,7 +16,10 @@ type Props = {
   highlightedIdeaId?: number | null;
 };
 
-type IdeaSection = "strategy-map" | "idea-bank";
+type IdeaSection =
+  | "strategy-map"
+  | "brainstorm-flow"
+  | "idea-bank";
 
 const sections = {
   "strategy-map": {
@@ -26,6 +31,16 @@ const sections = {
     border: "border-purple-200",
     text: "text-purple-700",
     color: "from-purple-500 to-fuchsia-500",
+  },
+  "brainstorm-flow": {
+    label: "Brainstorm Flow",
+    description:
+      "Generate new ideas through a structured creative hierarchy.",
+    icon: WandSparkles,
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    text: "text-rose-700",
+    color: "from-rose-500 to-orange-500",
   },
   "idea-bank": {
     label: "Idea Bank",
@@ -52,7 +67,7 @@ export default function IdeaWorkspace({
   return (
     <div className="space-y-6 studioos-readable">
       <div className="bg-white rounded-3xl shadow border p-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {(Object.keys(sections) as IdeaSection[]).map((section) => {
             const style = sections[section];
             const Icon = style.icon;
@@ -123,6 +138,10 @@ export default function IdeaWorkspace({
 
       {activeSection === "strategy-map" && (
         <IdeaArchitectureMap ideas={ideas} />
+      )}
+
+      {activeSection === "brainstorm-flow" && (
+        <BrainstormFlowV2 ideas={ideas} />
       )}
 
       {activeSection === "idea-bank" && (
