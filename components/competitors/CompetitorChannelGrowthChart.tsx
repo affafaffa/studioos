@@ -108,6 +108,37 @@ function getWeekNumber(date: Date) {
   return Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
 }
 
+function getWeekStart(date: Date) {
+  const output = new Date(date);
+  const day = output.getDay();
+  const diff = output.getDate() - day + (day === 0 ? -6 : 1);
+  output.setDate(diff);
+  output.setHours(0, 0, 0, 0);
+  return output;
+}
+
+function getWeekEnd(date: Date) {
+  const start = getWeekStart(date);
+  const output = new Date(start);
+  output.setDate(start.getDate() + 6);
+  output.setHours(23, 59, 59, 999);
+  return output;
+}
+
+function formatShortDate(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+  });
+}
+
+function formatWeekRange(date: Date) {
+  const start = getWeekStart(date);
+  const end = getWeekEnd(date);
+
+  return `${formatShortDate(start)} - ${formatShortDate(end)}`;
+}
+
 function getBucketKey(value: string, range: RangeKey) {
   const date = new Date(value);
 
@@ -123,7 +154,7 @@ function getBucketKey(value: string, range: RangeKey) {
     return date.toISOString().slice(0, 10);
   }
 
-  return `${year}-W${String(getWeekNumber(date)).padStart(2, "0")}`;
+  return getWeekStart(date).toISOString().slice(0, 10);
 }
 
 function formatBucketLabel(value: string, range: RangeKey) {
@@ -142,7 +173,7 @@ function formatBucketLabel(value: string, range: RangeKey) {
     });
   }
 
-  return `Week ${getWeekNumber(date)}`;
+  return formatWeekRange(date);
 }
 
 function getRangeCopy(range: RangeKey) {
@@ -164,8 +195,8 @@ function getRangeCopy(range: RangeKey) {
 
   return {
     title: "Weekly traffic breakdown",
-    description: "Monthly view: traffic is grouped by week. The table shows which episodes pulled traffic each week.",
-    tableFirstCol: "Week",
+    description: "Monthly view: traffic is grouped by week range. The table shows which episodes pulled traffic in each week range.",
+    tableFirstCol: "Date range",
   };
 }
 
@@ -765,9 +796,16 @@ export default function CompetitorChannelGrowthChart({
                       <td className="p-4">
                         <div className="space-y-3">
                           {bucket.episodes.map((episode, index) => (
-                            <div
+                            <a
                               key={`${bucket.key}-${episode.videoId}-${index}`}
-                              className="flex items-center gap-3"
+                              href={episode.url || "#"}
+                              target={episode.url ? "_blank" : undefined}
+                              rel={episode.url ? "noreferrer" : undefined}
+                              className={`flex items-center gap-3 rounded-2xl p-2 transition ${
+                                episode.url
+                                  ? "hover:bg-blue-50 cursor-pointer"
+                                  : "cursor-default"
+                              }`}
                             >
                               <div className="w-16 h-10 rounded-xl bg-slate-100 overflow-hidden shrink-0">
                                 {episode.thumbnail ? (
@@ -785,15 +823,16 @@ export default function CompetitorChannelGrowthChart({
                               </div>
 
                               <div className="min-w-0 flex-1">
-                                <p className="font-bold line-clamp-1">
+                                <p className="font-bold line-clamp-1 text-zinc-950">
                                   #{index + 1} {episode.title}
                                 </p>
 
                                 <p className="text-xs text-slate-500">
                                   {formatNumber(episode.traffic)} views
+                                  {episode.url ? " · Click to open" : ""}
                                 </p>
                               </div>
-                            </div>
+                            </a>
                           ))}
 
                           {bucket.episodes.length === 0 && (
