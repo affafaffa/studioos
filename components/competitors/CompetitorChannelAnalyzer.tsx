@@ -453,7 +453,9 @@ export default function CompetitorChannelAnalyzer({
   const keywords = extractKeywords(selectedVideos);
 
   const selectedGroup = competitorGroups.find(
-    (group) => Number(group.id) === getChannelGroupId(selectedChannel || {})
+    (group) =>
+      Number(group.id) ===
+      (selectedChannel ? getChannelGroupId(selectedChannel) : 0)
   );
 
   return (
