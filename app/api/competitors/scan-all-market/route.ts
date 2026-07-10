@@ -192,8 +192,8 @@ async function syncOneChannel({
     .update({
       youtube_channel_id: youtubeChannelId,
       channel_name:
-        channel.channel_name ||
         channelSnippet.title ||
+        channel.channel_name ||
         "Competitor Channel",
       channel_description: channelSnippet.description || "",
       channel_thumbnail_url:
@@ -211,6 +211,15 @@ async function syncOneChannel({
       raw_metadata: channelItem,
     })
     .eq("id", channel.id);
+
+  await supabase
+    .from("competitor_channel_snapshots")
+    .insert({
+      competitor_channel_id: channel.id,
+      subscriber_count: toNumber(channelStats.subscriberCount),
+      channel_view_count: toNumber(channelStats.viewCount),
+      video_count: toNumber(channelStats.videoCount),
+    });
 
   if (!uploadsPlaylistId) {
     return {

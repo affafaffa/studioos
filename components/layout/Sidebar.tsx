@@ -17,6 +17,7 @@ import {
   PieChart,
   Radar,
   Rocket,
+  Gauge,
   Settings,
   Sparkles,
   Target,
@@ -33,6 +34,7 @@ type IdeaSection =
 type CompetitorSection =
   | "market-share"
   | "groups"
+  | "channel-analyzer"
   | "keyword-radar"
   | "remix-lab"
   | "video-metadata";
@@ -135,6 +137,12 @@ const competitorSections: {
     colorClass: "text-blue-400",
   },
   {
+    id: "channel-analyzer",
+    label: "Channel Analyzer",
+    icon: Gauge,
+    colorClass: "text-emerald-400",
+  },
+  {
     id: "keyword-radar",
     label: "Keyword Radar",
     icon: Radar,
@@ -190,6 +198,7 @@ function normalizeCompetitorSection(value: string | null): CompetitorSection {
   if (
     value === "market-share" ||
     value === "groups" ||
+    value === "channel-analyzer" ||
     value === "keyword-radar" ||
     value === "remix-lab" ||
     value === "video-metadata"

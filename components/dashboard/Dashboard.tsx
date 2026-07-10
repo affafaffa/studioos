@@ -7,7 +7,7 @@ import DashboardHome from "@/components/dashboard/DashboardHome";
 import BulkImportChannelsButton from "@/components/competitors/BulkImportChannelsButton";
 import CompetitorMarketScanButton from "@/components/competitors/CompetitorMarketScanButton";
 import CompetitorMobileDashboard from "@/components/competitors/CompetitorMobileDashboard";
-import CompetitorWorkspace from "@/components/competitors/CompetitorWorkspace";
+import CompetitorDesktopRouter from "@/components/competitors/CompetitorDesktopRouter";
 import AnalystWorkspace from "@/components/competitors/AnalystWorkspace";
 import IdeaWorkspace from "@/components/ideas/IdeaWorkspace";
 import StudioCalendar from "@/components/calendar/StudioCalendar";
@@ -156,7 +156,7 @@ export default function Dashboard({
         />
 
         <div className="hidden lg:block">
-          <CompetitorWorkspace
+          <CompetitorDesktopRouter
             competitorGroups={safeCompetitorGroups}
             competitorChannels={safeCompetitorChannels}
             competitorVideos={safeCompetitorVideos}
