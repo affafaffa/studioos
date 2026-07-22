@@ -14,7 +14,8 @@ export const maxDuration = 300;
 const PAGE_SIZE = 1000;
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 const TREND_WINDOW_DAYS = 90;
-const MAX_THUMBNAILS_PER_ROW = 7;
+const TOP_TRENDS_PER_SYNC = 10;
+const MAX_THUMBNAILS_PER_TREND = 8;
 
 const BOILERPLATE_LABELS = [
   "official youtube thumbnail captured",
@@ -52,7 +53,8 @@ type TrendItem = {
   thumbnailUrl: string;
   videoUrl: string;
   publishedDate: string;
-  traffic: number;
+  publishedTime: number;
+  trafficPerDay: number;
 };
 
 type TrendGroup = {
@@ -61,8 +63,10 @@ type TrendGroup = {
   keyword: string;
   layout: string;
   channels: string[];
-  volumeEstimate: number;
-  totalTraffic: number;
+  volume90Days: number;
+  totalTrafficPerDay: number;
+  newestPublishedTime: number;
+  maxVideoTrafficPerDay: number;
   items: TrendItem[];
 };
 
@@ -93,6 +97,21 @@ function linkedImageFormula(
   return `=HYPERLINK("${escapeFormulaText(videoUrl)}";IMAGE("${escapeFormulaText(
     thumbnailUrl
   )}";4;90;160))`;
+}
+
+function youtubeLinkFormula(
+  videoUrl: string,
+  publishedDate: string
+): string {
+  if (!videoUrl) return "";
+
+  const label = publishedDate
+    ? `YouTube • ${publishedDate}`
+    : "Mở YouTube";
+
+  return `=HYPERLINK("${escapeFormulaText(
+    videoUrl
+  )}";"${escapeFormulaText(label)}")`;
 }
 
 function parseDurationToSeconds(
@@ -199,7 +218,7 @@ function getRawString(
 function buildSourceText(
   video: CompetitorVideo,
   channel: CompetitorChannel | null,
-  group: CompetitorGroup | null
+  _group: CompetitorGroup | null
 ): string {
   return normalizeText(
     [
@@ -210,9 +229,8 @@ function buildSourceText(
       video.idea_type,
       video.title_formula,
       video.thumbnail_style,
+      video.ai_summary,
       channel?.niche,
-      group?.category,
-      group?.name,
     ]
       .filter(Boolean)
       .join(" | ")
@@ -280,7 +298,6 @@ function detectMajorTopic(
   return (
     cleanLabel(video.theme) ||
     cleanLabel(video.idea_type) ||
-    cleanLabel(group?.category) ||
     cleanLabel(channel?.niche) ||
     "Chưa phân chủ đề"
   );
@@ -728,6 +745,18 @@ function buildTrendItems(
     const layout =
       detectLayout(source, video.thumbnail_style);
 
+    if (
+      majorTopic === "Chưa phân chủ đề" ||
+      !keyword ||
+      layout === "Chưa phân loại"
+    ) {
+      continue;
+    }
+
+    const publishedTime = video.published_at
+      ? new Date(video.published_at).getTime()
+      : 0;
+
     items.push({
       videoId: video.youtube_video_id,
       majorTopic,
@@ -742,7 +771,9 @@ function buildTrendItems(
       videoUrl: getVideoUrl(video),
       publishedDate:
         formatDateOnly(video.published_at),
-      traffic:
+      publishedTime:
+        Number.isFinite(publishedTime) ? publishedTime : 0,
+      trafficPerDay:
         calculateTrafficPerDay(video, snapshotMap),
     });
   }
@@ -750,10 +781,9 @@ function buildTrendItems(
   return items;
 }
 
-function buildThumbnailTrendRows(
-  items: TrendItem[],
-  updatedDate: string
-): unknown[][] {
+function buildTrendGroups(
+  items: TrendItem[]
+): TrendGroup[] {
   const grouped =
     new Map<string, TrendItem[]>();
 
@@ -765,7 +795,8 @@ function buildThumbnailTrendRows(
       normalizeText(item.layout),
     ].join("|||");
 
-    const current = grouped.get(key) || [];
+    const current =
+      grouped.get(key) || [];
 
     if (
       !current.some(
@@ -779,115 +810,144 @@ function buildThumbnailTrendRows(
     grouped.set(key, current);
   }
 
-  const trendGroups: TrendGroup[] =
-    Array.from(grouped.values()).map(
-      (groupItems) => {
-        const sortedItems =
-          [...groupItems].sort(
-            (a, b) => b.traffic - a.traffic
-          );
+  const candidates: TrendGroup[] = [];
 
-        const first = sortedItems[0];
+  for (const groupItems of grouped.values()) {
+    const sortedItems =
+      [...groupItems].sort(
+        (a, b) =>
+          b.trafficPerDay - a.trafficPerDay ||
+          b.publishedTime - a.publishedTime
+      );
 
-        const channels =
-          Array.from(
-            new Set(
-              sortedItems
-                .map((item) => item.channelName)
-                .filter(Boolean)
-            )
-          ).sort((a, b) =>
-            a.localeCompare(b)
-          );
+    const first = sortedItems[0];
 
-        return {
-          majorTopic: first.majorTopic,
-          nicheTopic: first.nicheTopic,
-          keyword: first.keyword,
-          layout: first.layout,
-          channels,
-          volumeEstimate: sortedItems.length,
-          totalTraffic:
-            sortedItems.reduce(
-              (sum, item) =>
-                sum + item.traffic,
-              0
-            ),
-          items: sortedItems,
-        };
-      }
-    );
+    const channels =
+      Array.from(
+        new Set(
+          sortedItems
+            .map((item) => item.channelName)
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b));
 
-  trendGroups.sort(
-    (a, b) =>
-      b.totalTraffic - a.totalTraffic ||
-      b.volumeEstimate - a.volumeEstimate ||
-      a.majorTopic.localeCompare(b.majorTopic)
-  );
+    const totalTrafficPerDay =
+      sortedItems.reduce(
+        (sum, item) =>
+          sum + item.trafficPerDay,
+        0
+      );
+
+    const newestPublishedTime =
+      Math.max(
+        ...sortedItems.map(
+          (item) => item.publishedTime
+        )
+      );
+
+    const maxVideoTrafficPerDay =
+      Math.max(
+        ...sortedItems.map(
+          (item) => item.trafficPerDay
+        )
+      );
+
+    const hasTrendSignal =
+      sortedItems.length >= 2 ||
+      channels.length >= 2 ||
+      maxVideoTrafficPerDay >= 10000;
+
+    if (!hasTrendSignal) continue;
+
+    candidates.push({
+      majorTopic: first.majorTopic,
+      nicheTopic: first.nicheTopic,
+      keyword: first.keyword,
+      layout: first.layout,
+      channels,
+      volume90Days: sortedItems.length,
+      totalTrafficPerDay,
+      newestPublishedTime,
+      maxVideoTrafficPerDay,
+      items: sortedItems,
+    });
+  }
+
+  return candidates
+    .sort(
+      (a, b) =>
+        b.totalTrafficPerDay - a.totalTrafficPerDay ||
+        b.newestPublishedTime - a.newestPublishedTime ||
+        b.volume90Days - a.volume90Days
+    )
+    .slice(0, TOP_TRENDS_PER_SYNC);
+}
+
+function buildThumbnailTrendRows(
+  items: TrendItem[],
+  updatedDate: string
+): unknown[][] {
+  const groups =
+    buildTrendGroups(items);
 
   const rows: unknown[][] = [];
 
-  for (const group of trendGroups) {
-    const totalParts = Math.max(
-      1,
-      Math.ceil(
-        group.items.length /
-          MAX_THUMBNAILS_PER_ROW
-      )
-    );
+  for (const group of groups) {
+    const topItems =
+      group.items.slice(
+        0,
+        MAX_THUMBNAILS_PER_TREND
+      );
 
-    for (
-      let index = 0;
-      index < group.items.length;
-      index += MAX_THUMBNAILS_PER_ROW
-    ) {
-      const chunk =
-        group.items.slice(
-          index,
-          index + MAX_THUMBNAILS_PER_ROW
-        );
+    const imageCells: unknown[] = [];
+    const linkCells: unknown[] = [];
 
-      const partNumber =
-        Math.floor(
-          index / MAX_THUMBNAILS_PER_ROW
-        ) + 1;
+    for (const item of topItems) {
+      imageCells.push(
+        imageFormula(item.thumbnailUrl)
+      );
 
-      const thumbnailCells: unknown[] = [];
-
-      for (const item of chunk) {
-        thumbnailCells.push(
-          linkedImageFormula(
-            item.videoUrl,
-            item.thumbnailUrl
-          )
-        );
-
-        thumbnailCells.push(
+      linkCells.push(
+        youtubeLinkFormula(
+          item.videoUrl,
           item.publishedDate
-        );
-      }
-
-      while (
-        thumbnailCells.length <
-        MAX_THUMBNAILS_PER_ROW * 2
-      ) {
-        thumbnailCells.push("");
-      }
-
-      rows.push([
-        "Loan",
-        group.majorTopic,
-        group.nicheTopic,
-        group.keyword,
-        group.channels.join("\n"),
-        group.layout,
-        group.volumeEstimate,
-        group.totalTraffic,
-        updatedDate,
-        `${partNumber}/${totalParts}`,
-        ...thumbnailCells,
-      ]);
+        )
+      );
     }
+
+    while (
+      imageCells.length <
+      MAX_THUMBNAILS_PER_TREND
+    ) {
+      imageCells.push("");
+      linkCells.push("");
+    }
+
+    rows.push([
+      "Loan",
+      updatedDate,
+      group.channels.join("\n"),
+      group.majorTopic,
+      group.nicheTopic,
+      group.keyword,
+      group.totalTrafficPerDay,
+      group.layout,
+      group.volume90Days,
+      ...imageCells,
+    ]);
+
+    rows.push([
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ...linkCells,
+    ]);
   }
 
   return rows;
@@ -1116,12 +1176,14 @@ export async function POST(request: Request) {
           eligibleTrendVideos:
             trendItems.length,
           thumbnailGroups:
-            thumbnailTrendRows.length,
+            Math.floor(thumbnailTrendRows.length / 2),
         },
         filters: {
           days: TREND_WINDOW_DAYS,
+          topTrends: TOP_TRENDS_PER_SYNC,
           shortsExcluded: true,
           livestreamsExcluded: true,
+          sortedBy: "totalTrafficPerDay_desc",
         },
         syncedAt,
       });
@@ -1417,7 +1479,7 @@ export async function POST(request: Request) {
         eligibleTrendVideos:
           trendItems.length,
         thumbnailGroups:
-          thumbnailTrendRows.length,
+          Math.floor(thumbnailTrendRows.length / 2),
         snapshots:
           snapshotRows.length,
       },
