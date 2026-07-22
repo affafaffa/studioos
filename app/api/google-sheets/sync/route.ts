@@ -9,7 +9,11 @@ import type {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+
+/*
+ * Cho phép route chạy tối đa 5 phút.
+ */
+export const maxDuration = 300;
 
 const PAGE_SIZE = 1000;
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -38,7 +42,9 @@ type ThumbnailTrendItem = {
   traffic: number;
 };
 
-function numberOrZero(value: number | null | undefined) {
+function numberOrZero(
+  value: number | null | undefined
+): number {
   return typeof value === "number" &&
     Number.isFinite(value)
     ? value
@@ -47,17 +53,17 @@ function numberOrZero(value: number | null | undefined) {
 
 function textOrBlank(
   value: string | null | undefined
-) {
+): string {
   return value?.trim() || "";
 }
 
-function escapeFormulaText(value: string) {
+function escapeFormulaText(value: string): string {
   return value.replace(/"/g, '""');
 }
 
 function imageFormula(
   thumbnailUrl: string | null | undefined
-) {
+): string {
   if (!thumbnailUrl) {
     return "";
   }
@@ -69,7 +75,7 @@ function imageFormula(
 
 function parseDurationToSeconds(
   duration: string | null | undefined
-) {
+): number {
   if (!duration) {
     return 0;
   }
@@ -95,7 +101,9 @@ function parseDurationToSeconds(
   );
 }
 
-function getThumbnailUrl(video: CompetitorVideo) {
+function getThumbnailUrl(
+  video: CompetitorVideo
+): string {
   return (
     video.thumbnail_maxres_url ||
     video.thumbnail_standard_url ||
@@ -109,7 +117,7 @@ function getThumbnailUrl(video: CompetitorVideo) {
 
 function normalizeThumbnailLayout(
   style: string | null | undefined
-) {
+): string {
   const original = textOrBlank(style);
 
   if (!original) {
@@ -183,8 +191,10 @@ async function fetchAllRows<T>(
   return allRows;
 }
 
-async function fetchRecentSnapshots() {
+async function fetchRecentSnapshots():
+  Promise<SnapshotRow[]> {
   const snapshots: SnapshotRow[] = [];
+
   const cutoff = new Date(
     Date.now() - 14 * MILLIS_PER_DAY
   ).toISOString();
@@ -206,10 +216,6 @@ async function fetchRecentSnapshots() {
         );
 
       if (error) {
-        /*
-         * Bảng snapshot chưa tồn tại hoặc chưa có quyền:
-         * không làm hỏng toàn bộ quá trình sync.
-         */
         console.warn(
           "Snapshot table unavailable:",
           error.message
@@ -244,7 +250,7 @@ async function fetchRecentSnapshots() {
 async function sendToAppsScript(
   action: string,
   payload: Record<string, unknown>
-) {
+): Promise<AppsScriptResponse> {
   const webAppUrl =
     process.env.GOOGLE_SHEETS_WEBAPP_URL;
 
@@ -267,23 +273,25 @@ async function sendToAppsScript(
     webAppUrl,
     {
       method: "POST",
+
       headers: {
         "Content-Type":
           "text/plain;charset=utf-8",
         Accept: "application/json",
       },
+
       body: JSON.stringify({
         action,
         secret,
         ...payload,
       }),
+
       redirect: "follow",
       cache: "no-store",
     }
   );
 
-  const rawText =
-    await response.text();
+  const rawText = await response.text();
 
   let result: AppsScriptResponse;
 
@@ -291,7 +299,7 @@ async function sendToAppsScript(
     result = JSON.parse(rawText);
   } catch {
     throw new Error(
-      `Apps Script không trả về JSON ở action ${action}: ` +
+      `Apps Script không trả về JSON tại action ${action}: ` +
         rawText.slice(0, 300)
     );
   }
@@ -311,11 +319,9 @@ async function sendToAppsScript(
 
 function createSnapshotMap(
   snapshots: SnapshotRow[]
-) {
-  const map = new Map<
-    number,
-    SnapshotRow[]
-  >();
+): Map<number, SnapshotRow[]> {
+  const map =
+    new Map<number, SnapshotRow[]>();
 
   for (const snapshot of snapshots) {
     if (
@@ -358,7 +364,7 @@ function calculateTraffic(
     number,
     SnapshotRow[]
   >
-) {
+): number {
   const snapshots =
     snapshotMap.get(video.id) || [];
 
@@ -395,9 +401,7 @@ function calculateTraffic(
       video.published_at
     ).getTime();
 
-  if (
-    !Number.isFinite(publishedTime)
-  ) {
+  if (!Number.isFinite(publishedTime)) {
     return 0;
   }
 
@@ -417,11 +421,12 @@ function calculateTraffic(
 
 function buildThumbnailTrendRows(
   items: ThumbnailTrendItem[]
-) {
-  const groups = new Map<
-    string,
-    ThumbnailTrendItem[]
-  >();
+): unknown[][] {
+  const groups =
+    new Map<
+      string,
+      ThumbnailTrendItem[]
+    >();
 
   for (const item of items) {
     const key = [
@@ -440,10 +445,12 @@ function buildThumbnailTrendRows(
 
   const rows: unknown[][] = [];
 
-  for (const [
-    key,
-    groupItems,
-  ] of groups.entries()) {
+  for (
+    const [
+      key,
+      groupItems,
+    ] of groups.entries()
+  ) {
     const [
       topic,
       keyword,
@@ -455,6 +462,10 @@ function buildThumbnailTrendRows(
         b.traffic - a.traffic
     );
 
+    /*
+     * Mỗi hàng tối đa 19 thumbnail,
+     * tương ứng cột F:X.
+     */
     for (
       let index = 0;
       index < groupItems.length;
@@ -487,6 +498,7 @@ function buildThumbnailTrendRows(
         keywordLabel,
         totalTraffic,
         layout,
+
         ...chunk.map((item) =>
           imageFormula(
             item.thumbnailUrl
@@ -498,13 +510,20 @@ function buildThumbnailTrendRows(
 
   return rows.sort(
     (a, b) =>
-      numberOrZero(b[3] as number) -
-      numberOrZero(a[3] as number)
+      numberOrZero(
+        b[3] as number
+      ) -
+      numberOrZero(
+        a[3] as number
+      )
   );
 }
 
 export async function POST() {
   try {
+    /*
+     * Đọc dữ liệu từ Supabase song song.
+     */
     const [
       groups,
       channels,
@@ -570,9 +589,11 @@ export async function POST() {
         | number
         | null
         | undefined
-    ) {
-      if (groupId === null ||
-          groupId === undefined) {
+    ): CompetitorGroup | null {
+      if (
+        groupId === null ||
+        groupId === undefined
+      ) {
         return null;
       }
 
@@ -587,7 +608,7 @@ export async function POST() {
         | number
         | null
         | undefined
-    ) {
+    ): CompetitorChannel | null {
       if (
         channelId === null ||
         channelId === undefined
@@ -601,6 +622,9 @@ export async function POST() {
       );
     }
 
+    /*
+     * CHANNEL_CLUSTERS
+     */
     const channelClusterRows =
       channels.map((channel) => {
         const group =
@@ -611,17 +635,26 @@ export async function POST() {
             channel.language ||
             group?.category ||
             "",
+
           group?.name ||
             "Chưa phân hệ thống",
+
           channel.youtube_channel_id ||
             "",
+
           channel.channel_name,
+
           "direct",
+
           group?.priority ?? "",
+
           channel.notes || "",
         ];
       });
 
+    /*
+     * Bảng tổng hợp kênh thị trường DIY
+     */
     const channelOverviewRows:
       unknown[][] = [];
 
@@ -664,6 +697,9 @@ export async function POST() {
         continue;
       }
 
+      /*
+       * Dòng tiêu đề hệ thống.
+       */
       channelOverviewRows.push([
         group.name,
         "",
@@ -681,20 +717,29 @@ export async function POST() {
         (channel, index) => {
           channelOverviewRows.push([
             index + 1,
+
             channel.channel_name,
+
             channel.channel_url || "",
+
             channel.youtube_channel_id ||
               "",
+
             channel.country ||
               channel.language ||
               group.category ||
               "",
+
             channel.created_at || "",
+
             "",
+
             numberOrZero(
               channel.channel_view_count
             ),
+
             "",
+
             channel.niche || "",
           ]);
         }
@@ -726,25 +771,37 @@ export async function POST() {
         (channel, index) => {
           channelOverviewRows.push([
             index + 1,
+
             channel.channel_name,
+
             channel.channel_url || "",
+
             channel.youtube_channel_id ||
               "",
+
             channel.country ||
               channel.language ||
               "",
+
             channel.created_at || "",
+
             "",
+
             numberOrZero(
               channel.channel_view_count
             ),
+
             "",
+
             channel.niche || "",
           ]);
         }
       );
     }
 
+    /*
+     * VIDEO_LIBRARY
+     */
     const videoLibraryRows =
       videos.map((video) => {
         const channel =
@@ -763,41 +820,59 @@ export async function POST() {
             channel?.language ||
             group?.category ||
             "",
+
           group?.name ||
             "Chưa phân hệ thống",
+
           channel?.youtube_channel_id ||
             "",
+
           video.channel_title ||
             channel?.channel_name ||
             "",
+
           video.youtube_video_id,
+
           video.title,
+
           video.published_at || "",
+
           video.video_url || "",
+
           getThumbnailUrl(video),
+
           numberOrZero(
             video.view_count
           ),
+
           numberOrZero(
             video.like_count
           ),
+
           numberOrZero(
             video.comment_count
           ),
+
           parseDurationToSeconds(
             video.duration
           ),
+
           video.last_synced_at ||
             syncedAt,
+
           (video.tags || []).join(
             " | "
           ),
-          video.thumbnail_style ||
-            "",
+
+          video.thumbnail_style || "",
+
           video.ai_summary || "",
         ];
       });
 
+    /*
+     * VIDEO_DAILY_SNAPSHOTS
+     */
     const snapshotRows =
       videos.map((video) => {
         const channel =
@@ -819,64 +894,96 @@ export async function POST() {
 
         return [
           `${snapshotDate}_${video.youtube_video_id}`,
+
           snapshotDate,
+
           syncedAt,
+
           channel?.country ||
             channel?.language ||
             group?.category ||
             "",
+
           group?.name ||
             "Chưa phân hệ thống",
+
           channel?.youtube_channel_id ||
             "",
+
           video.channel_title ||
             channel?.channel_name ||
             "",
+
           video.youtube_video_id,
+
           video.title,
+
           video.published_at || "",
+
           video.video_url || "",
+
           getThumbnailUrl(video),
+
           numberOrZero(
             video.view_count
           ),
+
           numberOrZero(
             video.like_count
           ),
+
           numberOrZero(
             video.comment_count
           ),
+
           parseDurationToSeconds(
             video.duration
           ),
+
           syncedAt,
+
           video.theme ||
             video.idea_type ||
             "",
+
           "",
+
           "",
+
           "",
+
           normalizeThumbnailLayout(
             video.thumbnail_style
           ),
+
           "",
+
           video.hook_type || "",
+
           video.theme ||
             video.title_formula ||
             "",
+
           "direct",
+
           `${video.youtube_video_id}_${numberOrZero(
             video.view_count
           )}_${snapshotDate}_${traffic}`,
         ];
       });
 
+    /*
+     * Video theo từng hệ thống kênh.
+     */
     const videosBySystem =
       new Map<
         string,
         unknown[][]
       >();
 
+    /*
+     * Dữ liệu dùng cho Xu hướng thumb.
+     */
     const thumbnailTrendItems:
       ThumbnailTrendItem[] = [];
 
@@ -906,29 +1013,41 @@ export async function POST() {
 
       systemRows.push([
         imageFormula(thumbnailUrl),
+
         thumbnailUrl,
+
         video.title,
+
         video.channel_title ||
           channel?.channel_name ||
           "",
+
         numberOrZero(
           video.view_count
         ),
+
         numberOrZero(
           video.like_count
         ),
+
         numberOrZero(
           video.comment_count
         ),
+
         video.duration || "",
+
         video.published_at || "",
+
         video.video_url || "",
+
         numberOrZero(
           channel?.video_count
         ),
+
         numberOrZero(
           channel?.subscriber_count
         ),
+
         numberOrZero(
           channel?.channel_view_count
         ),
@@ -969,28 +1088,35 @@ export async function POST() {
       }
     }
 
-    const systems = Array.from(
-      videosBySystem.entries()
-    ).map(
-      ([systemName, rows]) => ({
-        systemName,
-        rows: rows.sort(
-          (a, b) =>
-            numberOrZero(
-              b[4] as number
-            ) -
-            numberOrZero(
-              a[4] as number
-            )
-        ),
-      })
-    );
+    const systems =
+      Array.from(
+        videosBySystem.entries()
+      ).map(
+        ([systemName, rows]) => ({
+          systemName,
+
+          rows: rows.sort(
+            (a, b) =>
+              numberOrZero(
+                b[4] as number
+              ) -
+              numberOrZero(
+                a[4] as number
+              )
+          ),
+        })
+      );
 
     const thumbnailTrendRows =
       buildThumbnailTrendRows(
         thumbnailTrendItems
       );
 
+    /*
+     * Gửi từng phần sang Apps Script.
+     * Chạy tuần tự để tránh nhiều tiến trình
+     * cùng ghi một Google Sheet.
+     */
     await sendToAppsScript(
       "syncChannelClusters",
       {
@@ -1035,18 +1161,30 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
+
       message:
         "Đã đồng bộ dữ liệu StudioOS sang Google Sheet.",
+
       counts: {
-        groups: groups.length,
-        channels: channels.length,
-        videos: videos.length,
-        systems: systems.length,
+        groups:
+          groups.length,
+
+        channels:
+          channels.length,
+
+        videos:
+          videos.length,
+
+        systems:
+          systems.length,
+
         thumbnailGroups:
           thumbnailTrendRows.length,
+
         snapshots:
           snapshotRows.length,
       },
+
       syncedAt,
     });
   } catch (error) {
@@ -1058,6 +1196,7 @@ export async function POST() {
     return NextResponse.json(
       {
         success: false,
+
         error:
           error instanceof Error
             ? error.message
