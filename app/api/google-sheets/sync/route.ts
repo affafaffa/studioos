@@ -9,10 +9,6 @@ import type {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/*
- * Cho phép route chạy tối đa 5 phút.
- */
 export const maxDuration = 300;
 
 const PAGE_SIZE = 1000;
@@ -191,8 +187,9 @@ async function fetchAllRows<T>(
   return allRows;
 }
 
-async function fetchRecentSnapshots():
-  Promise<SnapshotRow[]> {
+async function fetchRecentSnapshots(): Promise<
+  SnapshotRow[]
+> {
   const snapshots: SnapshotRow[] = [];
 
   const cutoff = new Date(
@@ -462,10 +459,6 @@ function buildThumbnailTrendRows(
         b.traffic - a.traffic
     );
 
-    /*
-     * Mỗi hàng tối đa 19 thumbnail,
-     * tương ứng cột F:X.
-     */
     for (
       let index = 0;
       index < groupItems.length;
@@ -493,7 +486,7 @@ function buildThumbnailTrendRows(
         );
 
       rows.push([
-        "StudioOS",
+        "Loan",
         topic,
         keywordLabel,
         totalTraffic,
@@ -521,9 +514,6 @@ function buildThumbnailTrendRows(
 
 export async function POST() {
   try {
-    /*
-     * Đọc dữ liệu từ Supabase song song.
-     */
     const [
       groups,
       channels,
@@ -622,9 +612,6 @@ export async function POST() {
       );
     }
 
-    /*
-     * CHANNEL_CLUSTERS
-     */
     const channelClusterRows =
       channels.map((channel) => {
         const group =
@@ -652,9 +639,6 @@ export async function POST() {
         ];
       });
 
-    /*
-     * Bảng tổng hợp kênh thị trường DIY
-     */
     const channelOverviewRows:
       unknown[][] = [];
 
@@ -697,9 +681,6 @@ export async function POST() {
         continue;
       }
 
-      /*
-       * Dòng tiêu đề hệ thống.
-       */
       channelOverviewRows.push([
         group.name,
         "",
@@ -799,9 +780,6 @@ export async function POST() {
       );
     }
 
-    /*
-     * VIDEO_LIBRARY
-     */
     const videoLibraryRows =
       videos.map((video) => {
         const channel =
@@ -870,9 +848,6 @@ export async function POST() {
         ];
       });
 
-    /*
-     * VIDEO_DAILY_SNAPSHOTS
-     */
     const snapshotRows =
       videos.map((video) => {
         const channel =
@@ -972,18 +947,12 @@ export async function POST() {
         ];
       });
 
-    /*
-     * Video theo từng hệ thống kênh.
-     */
     const videosBySystem =
       new Map<
         string,
         unknown[][]
       >();
 
-    /*
-     * Dữ liệu dùng cho Xu hướng thumb.
-     */
     const thumbnailTrendItems:
       ThumbnailTrendItem[] = [];
 
@@ -1112,11 +1081,6 @@ export async function POST() {
         thumbnailTrendItems
       );
 
-    /*
-     * Gửi từng phần sang Apps Script.
-     * Chạy tuần tự để tránh nhiều tiến trình
-     * cùng ghi một Google Sheet.
-     */
     await sendToAppsScript(
       "syncChannelClusters",
       {
