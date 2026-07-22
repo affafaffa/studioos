@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  AlertCircle,
   Bot,
   CheckCircle2,
   Database,
+  ExternalLink,
+  FileSpreadsheet,
   FolderSearch,
   KeyRound,
   Lightbulb,
   Lock,
+  RefreshCw,
   Save,
   Search,
   Settings,
@@ -16,6 +20,7 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
+
 import type { Idea } from "@/types/idea";
 import type {
   CompetitorChannel,
@@ -37,6 +42,22 @@ type PreferenceState = {
   defaultMarket: string;
   defaultNiche: string;
 };
+
+type SheetConnectionStatus =
+  | "idle"
+  | "loading"
+  | "success"
+  | "error";
+
+type SheetTestResponse = {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  logSheet?: string;
+};
+
+const GOOGLE_SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/1yi2XMXzrdhfB_zHZVwYeMcU3Q18Fqx5BFDOY6G7-LSY/edit";
 
 const defaultPreferences: PreferenceState = {
   workspaceName: "StudioOS",
@@ -60,38 +81,48 @@ function SettingCard({
   title: string;
   description: string;
   icon: React.ReactNode;
-  tone: "rose" | "purple" | "blue" | "emerald" | "amber" | "slate";
+  tone:
+    | "rose"
+    | "purple"
+    | "blue"
+    | "emerald"
+    | "amber"
+    | "slate";
   children?: React.ReactNode;
 }) {
   const toneClass = {
     rose: "bg-rose-50 border-rose-200 text-rose-700",
-    purple: "bg-purple-50 border-purple-200 text-purple-700",
+    purple:
+      "bg-purple-50 border-purple-200 text-purple-700",
     blue: "bg-blue-50 border-blue-200 text-blue-700",
-    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    amber: "bg-amber-50 border-amber-200 text-amber-700",
-    slate: "bg-slate-50 border-slate-200 text-slate-700",
+    emerald:
+      "bg-emerald-50 border-emerald-200 text-emerald-700",
+    amber:
+      "bg-amber-50 border-amber-200 text-amber-700",
+    slate:
+      "bg-slate-50 border-slate-200 text-slate-700",
   }[tone];
 
   return (
-    <div className={`rounded-3xl border p-5 shadow-sm ${toneClass}`}>
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-zinc-950 text-white flex items-center justify-center shrink-0">
+    <div
+      className={`rounded-3xl border p-4 sm:p-5 shadow-sm ${toneClass}`}
+    >
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-950 text-white flex items-center justify-center shrink-0">
           {icon}
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="text-xl font-bold text-zinc-950">
+          <h3 className="text-lg sm:text-xl font-bold text-zinc-950 break-words">
             {title}
           </h3>
 
-          <p className="text-sm text-slate-600 mt-1 leading-6">
+          <p className="text-sm text-slate-600 mt-1 leading-6 break-words">
             {description}
           </p>
 
           {children && (
-            <div className="mt-5">
-              {children}
-            </div>
+            <div className="mt-5">{children}</div>
           )}
         </div>
       </div>
@@ -106,12 +137,23 @@ export default function StudioSettings({
   competitorVideos,
 }: Props) {
   const [query, setQuery] = useState("");
+
   const [preferences, setPreferences] =
     useState<PreferenceState>(defaultPreferences);
+
   const [message, setMessage] = useState("");
 
+  const [sheetStatus, setSheetStatus] =
+    useState<SheetConnectionStatus>("idle");
+
+  const [sheetMessage, setSheetMessage] = useState(
+    "Chưa kiểm tra kết nối Google Sheets."
+  );
+
   useEffect(() => {
-    const saved = window.localStorage.getItem("studioos-preferences");
+    const saved = window.localStorage.getItem(
+      "studioos-preferences"
+    );
 
     if (saved) {
       try {
@@ -130,7 +172,9 @@ export default function StudioSettings({
         activeView?: string;
       }>;
 
-      if (customEvent.detail?.activeView === "settings") {
+      if (
+        customEvent.detail?.activeView === "settings"
+      ) {
         setQuery(customEvent.detail.query || "");
       }
     }
@@ -151,29 +195,40 @@ export default function StudioSettings({
   const settingGroups = useMemo(() => {
     return [
       {
+        id: "integration",
+        title: "Google Sheets Integration",
+        keywords:
+          "google sheets sheet sync export connection integration thumbnail channel system",
+      },
+      {
         id: "workspace",
         title: "Workspace Preferences",
-        keywords: "workspace owner language market niche preference",
+        keywords:
+          "workspace owner language market niche preference",
       },
       {
         id: "security",
         title: "Security & Access",
-        keywords: "password auth token login private gate security",
+        keywords:
+          "password auth token login private gate security",
       },
       {
         id: "database",
         title: "Database Health",
-        keywords: "supabase ideas competitors channels videos data",
+        keywords:
+          "supabase ideas competitors channels videos data",
       },
       {
         id: "ai",
         title: "AI Configuration",
-        keywords: "openai mock mode brainstorm remix ai model",
+        keywords:
+          "openai mock mode brainstorm remix ai model",
       },
       {
         id: "navigation",
         title: "Navigation",
-        keywords: "sidebar ideas competitors analyst calendar settings",
+        keywords:
+          "sidebar ideas competitors analyst calendar settings",
       },
     ];
   }, []);
@@ -181,22 +236,27 @@ export default function StudioSettings({
   const visibleGroups = useMemo(() => {
     const text = query.trim().toLowerCase();
 
-    if (!text) return new Set(settingGroups.map((group) => group.id));
+    if (!text) {
+      return new Set(
+        settingGroups.map((group) => group.id)
+      );
+    }
 
     return new Set(
       settingGroups
         .filter((group) => {
           return (
-            group.title.toLowerCase().includes(text) ||
-            group.keywords.toLowerCase().includes(text)
+            group.title
+              .toLowerCase()
+              .includes(text) ||
+            group.keywords
+              .toLowerCase()
+              .includes(text)
           );
         })
         .map((group) => group.id)
     );
-  }, [
-    query,
-    settingGroups,
-  ]);
+  }, [query, settingGroups]);
 
   function savePreferences() {
     window.localStorage.setItem(
@@ -204,41 +264,111 @@ export default function StudioSettings({
       JSON.stringify(preferences)
     );
 
-    setMessage("Settings saved on this browser.");
+    setMessage(
+      "Settings saved on this browser."
+    );
   }
 
+  async function testGoogleSheetsConnection() {
+    setSheetStatus("loading");
+    setSheetMessage(
+      "StudioOS đang kiểm tra kết nối..."
+    );
+
+    try {
+      const response = await fetch(
+        "/api/google-sheets/test",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        }
+      );
+
+      const rawText = await response.text();
+
+      let result: SheetTestResponse;
+
+      try {
+        result = JSON.parse(rawText);
+      } catch {
+        throw new Error(
+          "API không trả về JSON hợp lệ. " +
+            rawText.slice(0, 200)
+        );
+      }
+
+      if (
+        !response.ok ||
+        result.success !== true
+      ) {
+        throw new Error(
+          result.error ||
+            "Không thể kết nối Google Sheets."
+        );
+      }
+
+      setSheetStatus("success");
+      setSheetMessage(
+        result.message ||
+          "StudioOS đã kết nối thành công với Google Sheet."
+      );
+    } catch (error) {
+      setSheetStatus("error");
+
+      setSheetMessage(
+        error instanceof Error
+          ? error.message
+          : "Kết nối Google Sheets thất bại."
+      );
+    }
+  }
+
+  const sheetStatusClass =
+    sheetStatus === "success"
+      ? "bg-emerald-100 border-emerald-300 text-emerald-800"
+      : sheetStatus === "error"
+        ? "bg-red-100 border-red-300 text-red-800"
+        : sheetStatus === "loading"
+          ? "bg-blue-100 border-blue-300 text-blue-800"
+          : "bg-white border-emerald-200 text-slate-700";
+
   return (
-    <div className="space-y-6 studioos-readable">
-      <div className="rounded-3xl bg-zinc-950 text-white p-7 shadow">
-        <div className="flex items-start justify-between gap-6">
-          <div>
+    <div className="space-y-6 studioos-readable min-w-0">
+      <div className="rounded-3xl bg-zinc-950 text-white p-5 sm:p-7 shadow">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+          <div className="min-w-0">
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm">
               <Settings size={16} />
               Workspace Settings
             </div>
 
-            <h2 className="text-3xl font-bold mt-4">
+            <h2 className="text-2xl sm:text-3xl font-bold mt-4 break-words">
               StudioOS configuration
             </h2>
 
-            <p className="text-zinc-300 mt-2 max-w-3xl">
-              Quản lý workspace, search settings, security reminder, database status và AI configuration.
+            <p className="text-zinc-300 mt-2 max-w-3xl leading-6">
+              Quản lý workspace, Google Sheets,
+              security, database và AI
+              configuration.
             </p>
           </div>
 
-          <div className="text-right">
+          <div className="sm:text-right shrink-0">
             <p className="text-sm text-zinc-400">
               Owner
             </p>
 
-            <p className="text-3xl font-bold mt-1">
+            <p className="text-2xl sm:text-3xl font-bold mt-1">
               {preferences.ownerName}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border shadow p-5">
+      <div className="bg-white rounded-3xl border shadow p-4 sm:p-5">
         <div className="relative">
           <Search
             size={18}
@@ -247,8 +377,10 @@ export default function StudioSettings({
 
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search settings: workspace, security, database, AI..."
+            onChange={(event) =>
+              setQuery(event.target.value)
+            }
+            placeholder="Search settings: Google Sheets, workspace, security, database..."
             className="w-full border rounded-2xl pl-11 pr-4 py-3 outline-none focus:ring-4 focus:ring-blue-100"
           />
         </div>
@@ -260,35 +392,174 @@ export default function StudioSettings({
         </p>
       )}
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <SettingCard
           title="Ideas"
-          description={`${formatNumber(ideas.length)} saved ideas`}
+          description={`${formatNumber(
+            ideas.length
+          )} saved ideas`}
           icon={<Lightbulb size={22} />}
           tone="rose"
         />
 
         <SettingCard
           title="Groups"
-          description={`${formatNumber(competitorGroups.length)} competitor groups`}
+          description={`${formatNumber(
+            competitorGroups.length
+          )} competitor groups`}
           icon={<FolderSearch size={22} />}
           tone="purple"
         />
 
         <SettingCard
           title="Channels"
-          description={`${formatNumber(competitorChannels.length)} tracked channels`}
+          description={`${formatNumber(
+            competitorChannels.length
+          )} tracked channels`}
           icon={<Database size={22} />}
           tone="blue"
         />
 
         <SettingCard
           title="Videos"
-          description={`${formatNumber(competitorVideos.length)} competitor metadata rows`}
+          description={`${formatNumber(
+            competitorVideos.length
+          )} competitor metadata rows`}
           icon={<Sparkles size={22} />}
           tone="emerald"
         />
       </div>
+
+      {visibleGroups.has("integration") && (
+        <SettingCard
+          title="Google Sheets Integration"
+          description="Kết nối StudioOS với bảng tổng hợp thị trường, hệ thống kênh và xu hướng thumbnail."
+          icon={<FileSpreadsheet size={22} />}
+          tone="emerald"
+        >
+          <div
+            className={`rounded-2xl border p-4 ${sheetStatusClass}`}
+          >
+            <div className="flex items-start gap-3">
+              {sheetStatus === "success" ? (
+                <CheckCircle2
+                  size={20}
+                  className="mt-0.5 shrink-0"
+                />
+              ) : sheetStatus === "error" ? (
+                <AlertCircle
+                  size={20}
+                  className="mt-0.5 shrink-0"
+                />
+              ) : (
+                <FileSpreadsheet
+                  size={20}
+                  className="mt-0.5 shrink-0"
+                />
+              )}
+
+              <div className="min-w-0">
+                <p className="font-bold">
+                  {sheetStatus === "success"
+                    ? "Connected"
+                    : sheetStatus === "error"
+                      ? "Connection failed"
+                      : sheetStatus === "loading"
+                        ? "Checking connection"
+                        : "Connection not tested"}
+                </p>
+
+                <p className="text-sm mt-1 leading-6 break-words">
+                  {sheetMessage}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-white border p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
+                Destination
+              </p>
+
+              <p className="font-bold text-zinc-950 mt-2">
+                Market Research Sheet
+              </p>
+
+              <p className="text-sm text-slate-600 mt-1">
+                Hệ thống kênh, video library,
+                snapshots và thumbnail trends.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white border p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
+                Authentication
+              </p>
+
+              <p className="font-bold text-zinc-950 mt-2">
+                Apps Script Web App
+              </p>
+
+              <p className="text-sm text-slate-600 mt-1">
+                Secret được giữ ở Vercel server,
+                không hiển thị trên trình duyệt.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white border p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
+                Test result
+              </p>
+
+              <p className="font-bold text-zinc-950 mt-2">
+                STUDIOOS_SYNC_LOG
+              </p>
+
+              <p className="text-sm text-slate-600 mt-1">
+                Test thành công sẽ tạo hoặc cập nhật
+                tab log trong Google Sheet.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={
+                testGoogleSheetsConnection
+              }
+              disabled={
+                sheetStatus === "loading"
+              }
+              className="w-full sm:w-auto rounded-2xl bg-zinc-950 text-white px-5 py-3 font-bold inline-flex items-center justify-center gap-2 hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <RefreshCw
+                size={17}
+                className={
+                  sheetStatus === "loading"
+                    ? "animate-spin"
+                    : ""
+                }
+              />
+
+              {sheetStatus === "loading"
+                ? "Testing..."
+                : "Test Connection"}
+            </button>
+
+            <a
+              href={GOOGLE_SHEET_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto rounded-2xl bg-white border border-emerald-300 text-emerald-800 px-5 py-3 font-bold inline-flex items-center justify-center gap-2 hover:bg-emerald-100"
+            >
+              <ExternalLink size={17} />
+              Open Google Sheet
+            </a>
+          </div>
+        </SettingCard>
+      )}
 
       {visibleGroups.has("workspace") && (
         <SettingCard
@@ -297,18 +568,21 @@ export default function StudioSettings({
           icon={<User size={22} />}
           tone="blue"
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-bold mb-2 text-zinc-950">
                 Workspace Name
               </label>
 
               <input
-                value={preferences.workspaceName}
+                value={
+                  preferences.workspaceName
+                }
                 onChange={(event) =>
                   setPreferences({
                     ...preferences,
-                    workspaceName: event.target.value,
+                    workspaceName:
+                      event.target.value,
                   })
                 }
                 className="w-full border rounded-2xl px-4 py-3 text-zinc-950"
@@ -325,7 +599,8 @@ export default function StudioSettings({
                 onChange={(event) =>
                   setPreferences({
                     ...preferences,
-                    ownerName: event.target.value,
+                    ownerName:
+                      event.target.value,
                   })
                 }
                 className="w-full border rounded-2xl px-4 py-3 text-zinc-950"
@@ -338,11 +613,14 @@ export default function StudioSettings({
               </label>
 
               <select
-                value={preferences.defaultLanguage}
+                value={
+                  preferences.defaultLanguage
+                }
                 onChange={(event) =>
                   setPreferences({
                     ...preferences,
-                    defaultLanguage: event.target.value,
+                    defaultLanguage:
+                      event.target.value,
                   })
                 }
                 className="w-full border rounded-2xl px-4 py-3 text-zinc-950"
@@ -362,28 +640,34 @@ export default function StudioSettings({
               </label>
 
               <input
-                value={preferences.defaultMarket}
+                value={
+                  preferences.defaultMarket
+                }
                 onChange={(event) =>
                   setPreferences({
                     ...preferences,
-                    defaultMarket: event.target.value,
+                    defaultMarket:
+                      event.target.value,
                   })
                 }
                 className="w-full border rounded-2xl px-4 py-3 text-zinc-950"
               />
             </div>
 
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <label className="block text-sm font-bold mb-2 text-zinc-950">
                 Default Niche
               </label>
 
               <input
-                value={preferences.defaultNiche}
+                value={
+                  preferences.defaultNiche
+                }
                 onChange={(event) =>
                   setPreferences({
                     ...preferences,
-                    defaultNiche: event.target.value,
+                    defaultNiche:
+                      event.target.value,
                   })
                 }
                 className="w-full border rounded-2xl px-4 py-3 text-zinc-950"
@@ -392,8 +676,9 @@ export default function StudioSettings({
           </div>
 
           <button
+            type="button"
             onClick={savePreferences}
-            className="mt-5 rounded-2xl bg-zinc-950 text-white px-5 py-3 font-bold inline-flex items-center gap-2"
+            className="mt-5 w-full sm:w-auto rounded-2xl bg-zinc-950 text-white px-5 py-3 font-bold inline-flex items-center justify-center gap-2"
           >
             <Save size={17} />
             Save Preferences
@@ -404,41 +689,52 @@ export default function StudioSettings({
       {visibleGroups.has("security") && (
         <SettingCard
           title="Security & Access"
-          description="StudioOS đang dùng password gate qua environment variables trên local/Vercel."
+          description="StudioOS đang dùng password gate qua environment variables trên local và Vercel."
           icon={<Lock size={22} />}
           tone="rose"
         >
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="rounded-2xl bg-white border p-4">
               <div className="flex items-center gap-2 text-emerald-700">
                 <CheckCircle2 size={18} />
-                <p className="font-bold">Password Gate</p>
+
+                <p className="font-bold">
+                  Password Gate
+                </p>
               </div>
 
               <p className="text-sm text-slate-600 mt-2">
-                Enabled by STUDIOOS_PASSWORD and STUDIOOS_AUTH_TOKEN.
+                Enabled by STUDIOOS_PASSWORD and
+                STUDIOOS_AUTH_TOKEN.
               </p>
             </div>
 
             <div className="rounded-2xl bg-white border p-4">
               <div className="flex items-center gap-2 text-blue-700">
                 <Shield size={18} />
-                <p className="font-bold">Private Workspace</p>
+
+                <p className="font-bold">
+                  Private Workspace
+                </p>
               </div>
 
               <p className="text-sm text-slate-600 mt-2">
-                Không share password công khai.
+                Không chia sẻ password công khai.
               </p>
             </div>
 
             <div className="rounded-2xl bg-white border p-4">
               <div className="flex items-center gap-2 text-amber-700">
                 <KeyRound size={18} />
-                <p className="font-bold">API Keys</p>
+
+                <p className="font-bold">
+                  API Keys
+                </p>
               </div>
 
               <p className="text-sm text-slate-600 mt-2">
-                Không commit .env.local lên GitHub.
+                Không commit file môi trường hoặc mã
+                bí mật lên GitHub.
               </p>
             </div>
           </div>
@@ -452,32 +748,50 @@ export default function StudioSettings({
           icon={<Database size={22} />}
           tone="emerald"
         >
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="rounded-2xl bg-white border p-4">
-              <p className="text-sm text-slate-500">Ideas</p>
+              <p className="text-sm text-slate-500">
+                Ideas
+              </p>
+
               <p className="text-2xl font-bold text-zinc-950 mt-1">
                 {formatNumber(ideas.length)}
               </p>
             </div>
 
             <div className="rounded-2xl bg-white border p-4">
-              <p className="text-sm text-slate-500">Groups</p>
+              <p className="text-sm text-slate-500">
+                Groups
+              </p>
+
               <p className="text-2xl font-bold text-zinc-950 mt-1">
-                {formatNumber(competitorGroups.length)}
+                {formatNumber(
+                  competitorGroups.length
+                )}
               </p>
             </div>
 
             <div className="rounded-2xl bg-white border p-4">
-              <p className="text-sm text-slate-500">Channels</p>
+              <p className="text-sm text-slate-500">
+                Channels
+              </p>
+
               <p className="text-2xl font-bold text-zinc-950 mt-1">
-                {formatNumber(competitorChannels.length)}
+                {formatNumber(
+                  competitorChannels.length
+                )}
               </p>
             </div>
 
             <div className="rounded-2xl bg-white border p-4">
-              <p className="text-sm text-slate-500">Metadata Videos</p>
+              <p className="text-sm text-slate-500">
+                Metadata Videos
+              </p>
+
               <p className="text-2xl font-bold text-zinc-950 mt-1">
-                {formatNumber(competitorVideos.length)}
+                {formatNumber(
+                  competitorVideos.length
+                )}
               </p>
             </div>
           </div>
@@ -491,14 +805,15 @@ export default function StudioSettings({
           icon={<Bot size={22} />}
           tone="purple"
         >
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="rounded-2xl bg-white border p-4">
               <p className="font-bold text-zinc-950">
                 Brainstorm Flow V2
               </p>
 
               <p className="text-sm text-slate-600 mt-2">
-                Sinh idea theo Story Pillar → Cluster → Niche.
+                Sinh idea theo Story Pillar →
+                Cluster → Niche.
               </p>
             </div>
 
@@ -518,7 +833,8 @@ export default function StudioSettings({
               </p>
 
               <p className="text-sm text-slate-600 mt-2">
-                Kiểm tra trong Vercel Environment Variables.
+                Kiểm tra trong Vercel Environment
+                Variables.
               </p>
             </div>
           </div>
@@ -528,11 +844,11 @@ export default function StudioSettings({
       {visibleGroups.has("navigation") && (
         <SettingCard
           title="Navigation"
-          description="Sidebar đã được tối giản: bỏ Videos và Analytics khỏi giao diện chính."
+          description="Các phần chính của StudioOS đang hiển thị trong Sidebar."
           icon={<Settings size={22} />}
           tone="amber"
         >
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
             {[
               "Dashboard",
               "Ideas",
@@ -544,7 +860,7 @@ export default function StudioSettings({
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-2xl bg-white border p-4 font-bold text-zinc-950 text-center"
+                className="rounded-2xl bg-white border p-4 font-bold text-zinc-950 text-center break-words"
               >
                 {item}
               </div>
