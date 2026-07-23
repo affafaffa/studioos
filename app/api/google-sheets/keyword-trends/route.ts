@@ -720,7 +720,10 @@ async function expandFromYouTube(
   keywordVolume: Map<string, number>;
   enabled: boolean;
 }> {
-  const apiKey = process.env.YOUTUBE_API_KEY || "";
+  const apiKey =
+    process.env.YOUTUBE_API_KEY2 ||
+    process.env.YOUTUBE_API_KEY ||
+    "";
 
   const keywordVolume = new Map<string, number>();
   if (!apiKey || keywords.length === 0) {
